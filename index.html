@@ -28,12 +28,22 @@
 <script type="text/javascript">
 	
 	//rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
-function getGrid(rx, ry, incx, incy, logx){
+function getGrid(rx, ry, incx, incy, logx, logy){
 	var gridlines = [];
-	var nx = logx ? 10 * Math.ceil(Math.log10(rx)) : Math.ceil(rx/incx);
-	var ny = Math.ceil(ry / incy);
+	var nx = logx ? Math.ceil(Math.log10(rx)) : Math.ceil(rx/incx);
+	var ny = logy ? Math.ceil(Math.log10(ry)) : Math.ceil(ry / incy);
 	for(var i=0; i<nx + 1; i++){
-		if(logx){}
+		if(logx){
+			for(var j=0; j<10; j++){
+				var dx = 2.0*(i+Math.log10(j))/nx - 1;
+				gridlines.push(dx);
+				gridlines.push(-1.05);
+				gridlines.push(0);
+				gridlines.push(dx);
+				gridlines.push(1.05);
+				gridlines.push(0);
+			}
+		}
 		else{
 			gridlines.push(i*2.0/nx - 1);
 			gridlines.push(-1.05);
@@ -44,12 +54,25 @@ function getGrid(rx, ry, incx, incy, logx){
 		}
 	}
 	for(var i=0; i< ny; i++){
+		if(logy){
+			for(var j=0; j<10; j++){
+				var dy = 2.0*(i+Math.log10(j))/ny - 1;
+				gridlines.push(1.05);
+				gridlines.push(dy);
+				gridlines.push(0);
+				gridlines.push(-1.05);
+				gridlines.push(dy);
+				gridlines.push(0);
+			}
+		}
+		else{
 			gridlines.push(1.05);
 			gridlines.push(i*2.0/ny - 1);
 			gridlines.push(0);
 			gridlines.push(-1.05);
 			gridlines.push(i*2.0/ny - 1);
 			gridlines.push(0);
+		}
 	}
 	return gridlines;
 }
@@ -61,21 +84,8 @@ if (!gl) {
         alert("Cannot get WebGL context!");
     }
 }
-	
-	console.log(getGrid(1000001.0, 101.0, 50000, 10, false));
-	
-	
-	
-   var vertices = [
-            -0.7,-0.1,0,
-            -0.3,0.6,0,
-            -0.3,-0.3,0,
-            0.2,0.6,0,
-            0.3,-0.3,0,
-            0.7,0.6,0 
-         ]
-   
-   vertices = getGrid(1000001.0, 101.0, 50000, 10, false);
+   console.log(getGrid(1000001.0, 101.0, 50000, 10, true, true));
+   vertices = getGrid(1000001.0, 101.0, 50000, 10, true, true);
           
          // Create an empty buffer object
          var vertex_buffer = gl.createBuffer();
