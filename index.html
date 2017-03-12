@@ -20,39 +20,156 @@
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+   <style>
+    table, th, td {
+        border: 1px solid black;
+    }
+    th, td {
+        min-width: 200px;
+        padding: 5px;
+    }
+    #controls {
+        float: right;
+    }
+    </style>
 </head>
 <body>
 <div class="container">
     <h1>CS 4621 PPA2 <span class="subtitle">Data Visualization</span></h1>
-<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="1024" height="1024"></canvas>
+<div id="controls">
+<h3>Cursor</h3>
+<table>
+<tr>
+<th>GDP per capita ($)</th>
+<td id="cursor_gdp"></td>
+</tr>
+<tr>
+<th>Life Expectancy (years)</th>
+<td id="cursor_life_expectancy"></td>
+</table>
+<h3>Data Point</h3>
+<table>
+<tr><th>Country</th><td id="point_country"></td></tr>
+<tr><th>Year</th><td id="point_year"></td></tr>
+<tr><th>Population</th><td id="point_population"></td></tr>
+<tr><th>GDP per capita ($)</th><td id="point_gdp"></td></tr>
+<tr><th>Life Expectancy (years)</th><td id="point_life_expectancy"></td></tr>
+</table>
+<h3>Country List</h3>
+<div id="country_list" style="width:200px;height:400px;overflow:scroll;"></div>
+</div>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="js/jquery-3.1.1.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<!-- Data -->
+<script src="data/country_list.js"></script>
+<script src="data/population.js"></script>
+<script src="data/gdp_per_capita.js"></script>
+<script src="data/life_expectancy.js"></script>
 <script type="text/javascript">
-	
-	//rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
-function getGrid(rx, ry, incx, incy, logx){
-	var gridlines = [];
-	var nx = logx ? 10 * Math.ceil(Math.log10(rx)) : Math.ceil(rx/incx);
-	var ny = Math.ceil(ry / incy);
-	for(var i=0; i<nx + 1; i++){
-		if(logx){}
-		else{
-			gridlines.push(i*2.0/nx - 1);
-			gridlines.push(-1.05);
-			gridlines.push(0);
-			gridlines.push(i*2.0/nx - 1);
-			gridlines.push(1.05);
-			gridlines.push(0);
-		}
-	}
-	for(var i=0; i< ny; i++){
-			gridlines.push(1.05);
-			gridlines.push(i*2.0/ny - 1);
-			gridlines.push(0);
-			gridlines.push(-1.05);
-			gridlines.push(i*2.0/ny - 1);
-			gridlines.push(0);
-	}
-	return gridlines;
+function populateControls() {
+    var container = document.getElementById("country_list");
+    for (let i = 0; i < getCountryList().length; i++) {
+        var checkbox = document.createElement('input');
+        checkbox.type = "checkbox";
+        checkbox.name = "name";
+        checkbox.value = "" + i;
+        checkbox.id = "country-" + i;
+getCountryList()
+        var label = document.createElement('label')
+        label.htmlFor = "id";
+        label.appendChild(document.createTextNode(getCountryList()[i].name));
+        var br = document.createElement('br');
+
+        container.appendChild(checkbox);
+        container.appendChild(label);
+        container.appendChild(br);
+    }
 }
+function getSelectedCountries() {
+    var res = [];
+    $("input[type=checkbox]:checked").each(function(k,v) {
+        res.push(parseInt(v.value));
+    });
+    return res;
+}
+
+
+$("#webglCanvas").mousemove(function (event) {
+    var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
+    var x = event.clientX - clientRect.left;
+    var y = clientRect.height - (event.clientY - clientRect.top);
+    $("#cursor_gdp").html(x);
+    $("#cursor_life_expectancy").html(y);
+});
+populateControls();
+    
+var xmax = 0, ymax = 0; 
+var xIsLog = false, yIsLog = false;
+    
+    //rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
+function getScale(rx, ry, incx, incy, logx, logy){
+    var gridlines = [];
+    xIsLog = logx;
+    yIsLog = logy;
+    xmax = logx ? Math.pow(10, Math.ceil(Math.log10(rx))) : incx * Math.ceil(rx/incx);
+    ymax = logy ? Math.pow(10, Math.ceil(Math.log10(ry))) : incy * Math.ceil(ry / incy);
+    var nx = logx ? Math.ceil(Math.log10(rx)) : Math.ceil(rx/incx);
+    var ny = logy ? Math.ceil(Math.log10(ry)) : Math.ceil(ry / incy);
+    for(var i=0; i<nx + 1; i++){
+        if(logx){
+            for(var j=1; j<10; j++){
+                var dx = 2.0*(i+Math.log10(j))/nx - 1;
+                gridlines.push(dx);
+                gridlines.push(-1.05);
+                gridlines.push(0);
+                gridlines.push(dx);
+                gridlines.push(1.05);
+                gridlines.push(0);
+            }
+        }
+        else{
+            gridlines.push(i*2.0/nx - 1);
+            gridlines.push(-1.05);
+            gridlines.push(0);
+            gridlines.push(i*2.0/nx - 1);
+            gridlines.push(1.05);
+            gridlines.push(0);
+        }
+    }
+    for(var i=0; i< ny; i++){
+        if(logy){
+            for(var j=1; j<10; j++){
+                var dy = 2.0*(i+Math.log10(j))/ny - 1;
+                gridlines.push(1.05);
+                gridlines.push(dy);
+                gridlines.push(0);
+                gridlines.push(-1.05);
+                gridlines.push(dy);
+                gridlines.push(0);
+            }
+        }
+        else{
+            gridlines.push(1.05);
+            gridlines.push(i*2.0/ny - 1);
+            gridlines.push(0);
+            gridlines.push(-1.05);
+            gridlines.push(i*2.0/ny - 1);
+            gridlines.push(0);
+        }
+    }
+    return gridlines;
+}
+    //use getScale first
+function getCoord(nx, ny){
+    var out = [];
+    out.push(2 * (xIsLog ? Math.log10(nx)/Math.log10(xmax) : nx/xmax) - 1.0);
+    out.push(2 * (yIsLog ? Math.log10(ny)/Math.log10(ymax) : ny/ymax) - 1.0);
+    out.push(0);
+    return out;
+}
+    
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
 if (!gl) {
@@ -61,114 +178,73 @@ if (!gl) {
         alert("Cannot get WebGL context!");
     }
 }
-	
-	console.log(getGrid(1000001.0, 101.0, 50000, 10, false));
-	
-	
-	
-   var vertices = [
-            -0.7,-0.1,0,
-            -0.3,0.6,0,
-            -0.3,-0.3,0,
-            0.2,0.6,0,
-            0.3,-0.3,0,
-            0.7,0.6,0 
-         ]
-   
-   vertices = getGrid(1000001.0, 101.0, 50000, 10, false);
+   console.log(getScale(1000001.0, 101.0, 50000, 10, true, true));
+   vertices = getScale(1000001.0, 101.0, 50000, 10, true, true);
           
          // Create an empty buffer object
          var vertex_buffer = gl.createBuffer();
-
          // Bind appropriate array buffer to it
          gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
       
          // Pass the vertex data to the buffer
          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
          // Unbind the buffer
          gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
          /*=================== Shaders ====================*/
-
          // Vertex shader source code
          var vertCode =
             'attribute vec3 coordinates;' +
             'void main(void) {' +
                ' gl_Position = vec4(coordinates, 1.0);' +
             '}';
-
          // Create a vertex shader object
          var vertShader = gl.createShader(gl.VERTEX_SHADER);
-
          // Attach vertex shader source code
          gl.shaderSource(vertShader, vertCode);
-
          // Compile the vertex shader
          gl.compileShader(vertShader);
-
          // Fragment shader source code
          var fragCode =
             'void main(void) {' +
                'gl_FragColor = vec4(0.0, 0.0, 0.0, 0.1);' +
             '}';
-
          // Create fragment shader object
          var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-
          // Attach fragment shader source code
          gl.shaderSource(fragShader, fragCode);
-
          // Compile the fragmentt shader
          gl.compileShader(fragShader);
-
          // Create a shader program object to store
          // the combined shader program
          var shaderProgram = gl.createProgram();
-
          // Attach a vertex shader
          gl.attachShader(shaderProgram, vertShader);
-
          // Attach a fragment shader
          gl.attachShader(shaderProgram, fragShader);
-
          // Link both the programs
          gl.linkProgram(shaderProgram);
-
          // Use the combined shader program object
          gl.useProgram(shaderProgram);
-
          /*======= Associating shaders to buffer objects ======*/
-
          // Bind vertex buffer object
          gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-
          // Get the attribute location
          var coord = gl.getAttribLocation(shaderProgram, "coordinates");
-
          // Point an attribute to the currently bound VBO
          gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
-
          // Enable the attribute
          gl.enableVertexAttribArray(coord);
-
          /*============ Drawing the triangle =============*/
-
          // Enable the depth test
          gl.enable(gl.DEPTH_TEST);
-
          // Clear the color and depth buffer
          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
          // Set the view port
          gl.viewport(0,0,canvas.width,canvas.height);
-
          // Draw the triangle
          gl.drawArrays(gl.LINES, 0, vertices.length/3);
-
          // POINTS, LINE_STRIP, LINE_LOOP, LINES,
          // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
-
 </script>
 
     <h2>Team Members</h2>
