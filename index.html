@@ -24,12 +24,23 @@
 <body>
 <div class="container">
     <h1>CS 4621 PPA2 <span class="subtitle">Data Visualization</span></h1>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="512" height="512"></canvas>
+<script type="text/javascript">
+var canvas = document.getElementById("webglCanvas")
+var gl = canvas.getContext("experimental-webgl");
+if (!gl) {
+    gl = canvas.getContent("webgl");
+    if (!gl) {
+        alert("Cannot get WebGL context!");
+    }
+}
+</script>
 
     <h2>Team Members</h2>
 
     <ul>
         <li>Please list your team members with NetID in this unordered list.</li>
-        <li>Example: Steve Marschner (srm2)</li>
+        <li>Josh Beinhacker (jpb345), Aishwarya Sing (as2539), Alex Schneider (as339)</li>
     </ul>
 </div>
 
