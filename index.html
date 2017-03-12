@@ -100,8 +100,12 @@ $("#webglCanvas").mousemove(function (event) {
     var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
     var x = event.clientX - clientRect.left;
     var y = clientRect.height - (event.clientY - clientRect.top);
-    $("#cursor_gdp").html(x);
-    $("#cursor_life_expectancy").html(y);
+    // Convert to -1 to 1
+    var xc = 2*x / clientRect.width - 1;
+    var yc = 2*y / clientRect.height - 1;
+    var out = getData(xc, yc);
+    $("#cursor_gdp").html(out[0].toFixed(2));
+    $("#cursor_life_expectancy").html(out[1].toFixed(2));
 });
 populateControls();
     
@@ -167,6 +171,18 @@ function getCoord(nx, ny){
     out.push(2 * (xIsLog ? Math.log10(nx)/Math.log10(xmax) : nx/xmax) - 1.0);
     out.push(2 * (yIsLog ? Math.log10(ny)/Math.log10(ymax) : ny/ymax) - 1.0);
     out.push(0);
+    return out;
+}
+
+// Gets data based on coordinates in range [-1,-1]x[1,1]
+function getData(coordx, coordy){
+    var out = [];
+    var nx = ((coordx + 1.0) / 2.0)*(xIsLog ? Math.log10(xmax) : xmax);
+    var ny = ((coordy + 1.0) / 2.0)*(yIsLog ? Math.log10(ymax) : ymax);
+    nx = xIsLog ? Math.pow(10,nx) : nx;
+    ny = yIsLog ? Math.pow(10,ny) : ny;
+    out.push(nx);
+    out.push(ny);
     return out;
 }
     
