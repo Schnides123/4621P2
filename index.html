@@ -27,14 +27,21 @@
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="1024" height="1024"></canvas>
 <script type="text/javascript">
 	
+var xmax = 0, ymax = 0;	
+var xIsLog = false, yIsLog = false;
+	
 	//rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
-function getGrid(rx, ry, incx, incy, logx, logy){
+function getScale(rx, ry, incx, incy, logx, logy){
 	var gridlines = [];
+	xIsLog = logx;
+	yIsLog = logy;
+	xmax = logx ? Math.pow(10, Math.ceil(Math.log10(rx))) : incx * Math.ceil(rx/incx);
+	ymax = logy ? Math.pow(10, Math.ceil(Math.log10(ry))) : incy * Math.ceil(ry / incy);
 	var nx = logx ? Math.ceil(Math.log10(rx)) : Math.ceil(rx/incx);
 	var ny = logy ? Math.ceil(Math.log10(ry)) : Math.ceil(ry / incy);
 	for(var i=0; i<nx + 1; i++){
 		if(logx){
-			for(var j=0; j<10; j++){
+			for(var j=1; j<10; j++){
 				var dx = 2.0*(i+Math.log10(j))/nx - 1;
 				gridlines.push(dx);
 				gridlines.push(-1.05);
@@ -55,7 +62,7 @@ function getGrid(rx, ry, incx, incy, logx, logy){
 	}
 	for(var i=0; i< ny; i++){
 		if(logy){
-			for(var j=0; j<10; j++){
+			for(var j=1; j<10; j++){
 				var dy = 2.0*(i+Math.log10(j))/ny - 1;
 				gridlines.push(1.05);
 				gridlines.push(dy);
@@ -76,6 +83,16 @@ function getGrid(rx, ry, incx, incy, logx, logy){
 	}
 	return gridlines;
 }
+
+	//use getScale first
+function getCoord(nx, ny){
+	var out = [];
+	out.push(2 * (xIsLog ? Math.log10(nx)/Math.log10(xmax) : nx/xmax) - 1.0);
+	out.push(2 * (yIsLog ? Math.log10(ny)/Math.log10(ymax) : ny/ymax) - 1.0);
+	out.push(0);
+	return out;
+}
+	
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
 if (!gl) {
@@ -84,8 +101,8 @@ if (!gl) {
         alert("Cannot get WebGL context!");
     }
 }
-   console.log(getGrid(1000001.0, 101.0, 50000, 10, true, true));
-   vertices = getGrid(1000001.0, 101.0, 50000, 10, true, true);
+   console.log(getScale(1000001.0, 101.0, 50000, 10, true, true));
+   vertices = getScale(1000001.0, 101.0, 50000, 10, true, true);
           
          // Create an empty buffer object
          var vertex_buffer = gl.createBuffer();
