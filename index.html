@@ -26,6 +26,33 @@
     <h1>CS 4621 PPA2 <span class="subtitle">Data Visualization</span></h1>
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="1024" height="1024"></canvas>
 <script type="text/javascript">
+	
+	//rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
+function getGrid(rx, ry, incx, incy, logx){
+	var gridlines = [];
+	var nx = logx ? 10 * Math.ceil(Math.log10(rx)) : Math.ceil(rx/incx);
+	var ny = Math.ceil(ry / incy);
+	for(var i=0; i<nx + 1; i++){
+		if(logx){}
+		else{
+			gridlines.push(i*2.0/nx - 1);
+			gridlines.push(-1.05);
+			gridlines.push(0);
+			gridlines.push(i*2.0/nx - 1);
+			gridlines.push(1.05);
+			gridlines.push(0);
+		}
+	}
+	for(var i=0; i< ny; i++){
+			gridlines.push(1.05);
+			gridlines.push(i*2.0/ny - 1);
+			gridlines.push(0);
+			gridlines.push(-1.05);
+			gridlines.push(i*2.0/ny - 1);
+			gridlines.push(0);
+	}
+	return gridlines;
+}
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
 if (!gl) {
@@ -34,6 +61,11 @@ if (!gl) {
         alert("Cannot get WebGL context!");
     }
 }
+	
+	console.log(getGrid(1000001.0, 101.0, 50000, 10, false));
+	
+	
+	
    var vertices = [
             -0.7,-0.1,0,
             -0.3,0.6,0,
@@ -42,6 +74,8 @@ if (!gl) {
             0.3,-0.3,0,
             0.7,0.6,0 
          ]
+   
+   vertices = getGrid(1000001.0, 101.0, 50000, 10, false);
           
          // Create an empty buffer object
          var vertex_buffer = gl.createBuffer();
@@ -130,7 +164,7 @@ if (!gl) {
          gl.viewport(0,0,canvas.width,canvas.height);
 
          // Draw the triangle
-         gl.drawArrays(gl.LINES, 0, 6);
+         gl.drawArrays(gl.LINES, 0, vertices.length/3);
 
          // POINTS, LINE_STRIP, LINE_LOOP, LINES,
          // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
