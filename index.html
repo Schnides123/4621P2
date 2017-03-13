@@ -36,7 +36,7 @@
 <body>
 <div class="container">
     <h1>CS 4621 PPA2 <span class="subtitle">Data Visualization</span></h1>
-<div id="controls">
+<div id="controls" class="col-md-4">
 <h3>Cursor</h3>
 <table>
 <tr>
@@ -58,7 +58,24 @@
 <h3>Country List</h3>
 <div id="country_list" style="width:200px;height:400px;overflow:scroll;"></div>
 </div>
+<div class = "col-md-8">
+<h3 align="center" id="currentYear"></h3>
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
+<table>
+    <tr>
+        <td>
+            <button id="playButton">Play!</button>
+        </td>
+        <td>
+            <table>
+                    <tr>
+                        <td width="512" id="yearSlider"></td>
+                    </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+	</div>
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="js/jquery-3.1.1.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
@@ -201,6 +218,60 @@ function getData(coordx, coordy){
     out.push(ny);
     return out;
 }
+	
+// Year slider and the play button.
+    var yearSlider = $("#yearSlider");
+    var playButton = $("#playButton");
+
+    yearSlider.slider({
+        min: 1800,
+        max: 2015
+    });
+
+    var isPlaying = false;
+    var lastYearUpdate;
+    var yearUpdateInterval = 100.0;
+
+    function startPlay() {
+        isPlaying = true;
+        lastYearUpdate = performance.now();
+        yearSlider.slider("disable");
+    }
+
+    function stopPlay() {
+        isPlaying = false;
+        yearSlider.slider("enable");
+    }
+
+    playButton.click(function () {
+        if (isPlaying) {
+            stopPlay();
+        } else {
+            startPlay();
+        }
+    });
+
+    function updateUi() {
+        var year = yearSlider.slider("value");
+
+        if (isPlaying) {
+            if (year == 2015) {
+                stopPlay();
+            } else {
+                var currentTime = performance.now();
+                if (currentTime - lastYearUpdate > yearUpdateInterval) {
+                    lastYearUpdate = currentTime;
+                    yearSlider.slider("value", year + 1);
+                }
+            }
+        }
+
+        year = yearSlider.slider("value");
+        $("#currentYear").html("<h1>" + year + "</h1>");
+
+        window.requestAnimationFrame(updateUi);
+    }
+    window.requestAnimationFrame(updateUi);
     
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
