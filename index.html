@@ -61,21 +61,20 @@
 <div class = "col-md-8">
 <h3 align="center" id="currentYear"></h3>
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
-<table>
-    <tr>
-        <td>
-            <button id="playButton">Play!</button>
-        </td>
-        <td>
-            <table>
-                    <tr>
-                        <td width="512" id="yearSlider"></td>
-                    </tr>
-            </table>
-        </td>
-    </tr>
-</table>
-	</div>
+</div>
+
+<!-- Play button and slider -->
+<div id = "yearslider">
+    <td>
+        <button id="playButton">Play!</button>
+        <td width="20"></td>
+        <table>
+                <td width="512" id="yearSlider"></td>
+        </table>
+    </td>
+</div>
+
+
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="js/jquery-3.1.1.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
@@ -86,7 +85,6 @@
 <script src="data/life_expectancy.js"></script>
 <script id="vertexShader" type="x-shader/x-vertex">
 attribute vec3 coordinates;
-
 void main(void) {
  gl_Position = vec4(coordinates, 1.0);
 }
@@ -110,7 +108,6 @@ getCountryList()
         label.htmlFor = "id";
         label.appendChild(document.createTextNode(getCountryList()[i].name));
         var br = document.createElement('br');
-
         container.appendChild(checkbox);
         container.appendChild(label);
         container.appendChild(br);
@@ -123,8 +120,6 @@ function getSelectedCountries() {
     });
     return res;
 }
-
-
 $("#webglCanvas").mousemove(function (event) {
     var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
     var x = event.clientX - clientRect.left;
@@ -206,7 +201,6 @@ function getCoord(nx, ny){
     out.push(0);
     return out;
 }
-
 // Gets data based on coordinates in range [-1,-1]x[1,1]
 function getData(coordx, coordy){
     var out = [];
@@ -218,31 +212,26 @@ function getData(coordx, coordy){
     out.push(ny);
     return out;
 }
-	
+    
 // Year slider and the play button.
     var yearSlider = $("#yearSlider");
     var playButton = $("#playButton");
-
     yearSlider.slider({
         min: 1800,
         max: 2015
     });
-
     var isPlaying = false;
     var lastYearUpdate;
     var yearUpdateInterval = 100.0;
-
     function startPlay() {
         isPlaying = true;
         lastYearUpdate = performance.now();
         yearSlider.slider("disable");
     }
-
     function stopPlay() {
         isPlaying = false;
         yearSlider.slider("enable");
     }
-
     playButton.click(function () {
         if (isPlaying) {
             stopPlay();
@@ -250,10 +239,8 @@ function getData(coordx, coordy){
             startPlay();
         }
     });
-
     function updateUi() {
         var year = yearSlider.slider("value");
-
         if (isPlaying) {
             if (year == 2015) {
                 stopPlay();
@@ -265,10 +252,8 @@ function getData(coordx, coordy){
                 }
             }
         }
-
         year = yearSlider.slider("value");
         $("#currentYear").html("<h1>" + year + "</h1>");
-
         window.requestAnimationFrame(updateUi);
     }
     window.requestAnimationFrame(updateUi);
