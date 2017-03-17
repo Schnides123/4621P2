@@ -98,6 +98,8 @@ void main(void) {
 }
 </script>
 <script type="text/javascript">
+var data = [];
+
 function populateControls() {
 	var container = document.getElementById("country_list");
 	for (let i = 0; i < getCountryList().length; i++) {
@@ -137,6 +139,17 @@ $("#webglCanvas").mousemove(function (event) {
 $("#webglCanvas").mouseleave(function (event) {
 	$("#cursor_gdp").html("");
 	$("#cursor_life_expectancy").html("");
+});
+$("#webglCanvas").mousedown(function (event) {
+	var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
+	var x = event.clientX - clientRect.left;
+	var y = clientRect.height - (event.clientY - clientRect.top);
+	// Convert to -1 to 1
+	var xc = 2*x / clientRect.width - 1;
+	var yc = 2*y / clientRect.height - 1;
+	var out = getData(xc, yc);
+	$("#cursor_gdp").html(out[0].toFixed(2));
+	$("#cursor_life_expectancy").html(out[1].toFixed(2));
 });
 populateControls();
 	
@@ -369,7 +382,7 @@ function renderLoop() {
     }
 
     year = 0;
-    var data = [];
+    data = [];
     var maxPopulation = -1;
     for (i in getCountryList()) {
         var name = getCountryList()[i].name;
@@ -380,11 +393,12 @@ function renderLoop() {
             continue;
         }
         maxPopulation = Math.max(maxPopulation, population);
-        data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name]});
+        data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0});
     }
     for (var i = 0; i < data.length; i++) {
-        var biggest = 0.1;
-        drawCircle(data[i].coord[0], data[i].coord[1], Math.log10(data[i].population)/Math.log10(maxPopulation)*biggest, data[i].color);
+        var biggest = 0.2;
+        data[i].radius = Math.pow(data[i].population,0.3)/Math.pow(maxPopulation,0.3)*biggest;
+        drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color);
     }
     window.requestAnimationFrame(renderLoop);
 }
