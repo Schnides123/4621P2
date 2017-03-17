@@ -110,7 +110,6 @@ function populateControls() {
         checkbox.name = "name";
         checkbox.value = "" + i;
         checkbox.id = "country-" + i;
-        getCountryList()
         var label = document.createElement('label')
         label.htmlFor = "id";
         label.appendChild(document.createTextNode(getCountryList()[i].name));
@@ -129,11 +128,11 @@ function getSelectedCountries() {
 }
 
 $("#selectAllButton").click(function() {
-    $("input[type=checkbox]").attr('checked',true);
+
 });
 
 $("#deselectAllButton").click(function() {
-    $("input[type=checkbox]").attr('checked',false);
+
 });
 
 $("#webglCanvas").mousemove(function (event) {
@@ -151,6 +150,7 @@ $("#webglCanvas").mousemove(function (event) {
         var distance = Math.sqrt(Math.pow(xc-data[i].coord[0],2) + Math.pow(yc-data[i].coord[1],2));
         if (distance < data[i].radius) {
             intersection = data[i].index;
+            break;
         }
     }
     hovered = intersection;
@@ -419,13 +419,13 @@ function renderLoop() {
             // This vertex, the next vertex, and the center each time
             vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
             vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
-            vertices.push(-1);
+            vertices.push(-0.1);
             vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
             vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
-            vertices.push(-1);
+            vertices.push(-0.1);
             vertices.push(centerx);
             vertices.push(centery);
-            vertices.push(-1);
+            vertices.push(-0.1);
         }
         var buff2 = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
@@ -439,13 +439,43 @@ function renderLoop() {
         gl.uniform3fv(gl.getUniformLocation(shaderProgram,"color"), color);
         gl.drawArrays(gl.TRIANGLES, 0, vertices.length/3);
     }
+    function drawHighlight(centerx, centery, r) {
+        var vertices = [];
+        var numVertices = 10;
+        for (var i = 0; i < numVertices; i++) {
+            // This vertex, the next vertex, and the center each time
+            vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
+            vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
+            vertices.push(-1);
+            vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
+            vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
+            vertices.push(-1);
+        }
+        var buff2 = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        // Get the attribute location
+        var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+        // Point an attribute to the currently bound VBO
+        gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+        // Enable the attribute
+        gl.enableVertexAttribArray(coord);
+        color = [1, 0, 1];
+        gl.uniform3fv(gl.getUniformLocation(shaderProgram,"color"), color);
+        gl.drawArrays(gl.LINES, 0, vertices.length/3);
+    }
     year = yearSlider.slider("value") - 1800;
     var min, max;
+    var countries = [];
     var anyChecked = false;
     for (i in getCountryList()) {
         if ($("#country-" + i).prop('checked')) {
+            countries.push(getCountryList()[i]);
             anyChecked = true;
         }
+    }
+    if (countries.length == 0) {
+        countries = getCountryList();
     }
     if (anyChecked) {
         min = 0;
@@ -457,7 +487,7 @@ function renderLoop() {
     data = [];
     var maxPopulation = -1;
     for (var p = min; p <= max; p++) {
-        for (i in getCountryList()) {
+        for (i in countries) {
             var name = getCountryList()[i].name;
             var gdp = getGdpPerCapita()[name][p];
             var life_expectancy = getLifeExpectancy()[name][p];
@@ -473,10 +503,19 @@ function renderLoop() {
             data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: i});
         }
     }
+    var j = -1;
     for (var i = 0; i < data.length; i++) {
         var biggest = 0.2;
         data[i].radius = Math.pow(data[i].population,0.3)/Math.pow(maxPopulation,0.3)*biggest;
         drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color);
+        if (data[i].index == hovered) {
+            j = i;
+        }
+    }
+    if (j != -1) {
+        drawHighlight(data[j].coord[0], data[j].coord[1], data[j].radius + 0.01);
+        drawHighlight(data[j].coord[0], data[j].coord[1], data[j].radius + 0.02);
+        drawHighlight(data[j].coord[0], data[j].coord[1], data[j].radius + 0.03);
     }
     window.requestAnimationFrame(renderLoop);
 }
