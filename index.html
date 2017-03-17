@@ -466,18 +466,38 @@ function renderLoop() {
         gl.drawArrays(gl.LINES, 0, vertices.length/3);
     }
     year = yearSlider.slider("value") - 1800;
+    var min, max;
+    var anyChecked = false;
+    for (i in getCountryList()) {
+        if ($("#country-" + i).prop('checked')) {
+            anyChecked = true;
+        }
+    }
+    if (anyChecked) {
+        min = 0;
+        max = year;
+    } else {
+        min = year;
+        max = year;
+    }
     data = [];
     var maxPopulation = -1;
-    for (i in getCountryList()) {
-        var name = getCountryList()[i].name;
-        var gdp = getGdpPerCapita()[name][year];
-        var life_expectancy = getLifeExpectancy()[name][year];
-        var population = getPopulation()[name][year];
-        if (!population || !life_expectancy || !name) {
-            continue;
+    for (var p = min; p <= max; p++) {
+        for (i in getCountryList()) {
+            var name = getCountryList()[i].name;
+            var gdp = getGdpPerCapita()[name][p];
+            var life_expectancy = getLifeExpectancy()[name][p];
+            var population = getPopulation()[name][p];
+            var selected = $("#country-" + i).prop('checked');
+            if (anyChecked && !selected) {
+                continue;
+            }
+            if (!population || !life_expectancy || !name) {
+                continue;
+            }
+            maxPopulation = Math.max(maxPopulation, population);
+            data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: i});
         }
-        maxPopulation = Math.max(maxPopulation, population);
-        data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: i});
     }
     var j = -1;
     for (var i = 0; i < data.length; i++) {
