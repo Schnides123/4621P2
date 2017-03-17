@@ -98,6 +98,7 @@ void main(void) {
 </script>
 <script type="text/javascript">
 var data = [];
+var hovered = -1;
 var selected = -1;
 function populateControls() {
     var container = document.getElementById("country_list");
@@ -134,13 +135,20 @@ $("#webglCanvas").mousemove(function (event) {
     var out = getData(xc, yc);
     $("#cursor_gdp").html(out[0].toFixed(2));
     $("#cursor_life_expectancy").html(out[1].toFixed(2));
+    var intersection = -1;
+    for (i in data) {
+        var distance = Math.sqrt(Math.pow(xc-data[i].coord[0],2) + Math.pow(yc-data[i].coord[1],2));
+        if (distance < data[i].radius) {
+            intersection = i;
+        }
+    }
+    hovered = intersection;
 });
 $("#webglCanvas").mouseleave(function (event) {
     $("#cursor_gdp").html("");
     $("#cursor_life_expectancy").html("");
 });
 $("#webglCanvas").mousedown(function (event) {
-    var copy = data.slice();
     var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
     var x = event.clientX - clientRect.left;
     var y = clientRect.height - (event.clientY - clientRect.top);
@@ -149,7 +157,7 @@ $("#webglCanvas").mousedown(function (event) {
     var yc = 2*y / clientRect.height - 1;
     // Find the center closest to this in the cloned data
     var intersection = -1;
-    for (i in copy) {
+    for (i in data) {
         var distance = Math.sqrt(Math.pow(xc-data[i].coord[0],2) + Math.pow(yc-data[i].coord[1],2));
         if (distance < data[i].radius) {
             intersection = i;
@@ -365,13 +373,14 @@ function renderLoop() {
     // Second object
     function drawCircle(centerx, centery, r, color) {
         var vertices = [];
-        for (var i = 0; i < 10; i++) {
+        var numVertices = 10;
+        for (var i = 0; i < numVertices; i++) {
             // This vertex, the next vertex, and the center each time
-            vertices.push(r*Math.cos(2*i*Math.PI/10) + centerx);
-            vertices.push(r*Math.sin(2*i*Math.PI/10) + centery);
+            vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
+            vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
             vertices.push(-1);
-            vertices.push(r*Math.cos(2*(i+1)*Math.PI/10) + centerx);
-            vertices.push(r*Math.sin(2*(i+1)*Math.PI/10) + centery);
+            vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
+            vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
             vertices.push(-1);
             vertices.push(centerx);
             vertices.push(centery);
