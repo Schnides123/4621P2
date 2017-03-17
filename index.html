@@ -139,10 +139,27 @@ $("#webglCanvas").mousemove(function (event) {
     for (i in data) {
         var distance = Math.sqrt(Math.pow(xc-data[i].coord[0],2) + Math.pow(yc-data[i].coord[1],2));
         if (distance < data[i].radius) {
-            intersection = i;
+            intersection = data[i].index;
         }
     }
     hovered = intersection;
+    if (hovered != -1) {
+        var name = getCountryList()[hovered].name;
+        var gdp = getGdpPerCapita()[name][year];
+        var life_expectancy = getLifeExpectancy()[name][year];
+        var population = getPopulation()[name][year];
+        $("#point_country").html(name);
+        $("#point_year").html(yearSlider.slider("value"));
+        $("#point_gdp").html(gdp);
+        $("#point_life_expectancy").html(life_expectancy);
+        $("#point_population").html(population);
+    } else {
+        $("#point_country").html("");
+        $("#point_year").html("");
+        $("#point_gdp").html("");
+        $("#point_life_expectancy").html("");
+        $("#point_population").html("");
+    }
 });
 $("#webglCanvas").mouseleave(function (event) {
     $("#cursor_gdp").html("");
@@ -160,7 +177,7 @@ $("#webglCanvas").mousedown(function (event) {
     for (i in data) {
         var distance = Math.sqrt(Math.pow(xc-data[i].coord[0],2) + Math.pow(yc-data[i].coord[1],2));
         if (distance < data[i].radius) {
-            intersection = i;
+            intersection = data[i].index;
         }
     }
     selected = intersection;
@@ -410,7 +427,7 @@ function renderLoop() {
             continue;
         }
         maxPopulation = Math.max(maxPopulation, population);
-        data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0});
+        data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: i});
     }
     for (var i = 0; i < data.length; i++) {
         var biggest = 0.2;
