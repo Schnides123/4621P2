@@ -57,6 +57,8 @@
 </table>
 <h3>Country List</h3>
 <div id="country_list" style="width:200px;height:400px;overflow:scroll;"></div>
+    <button id="selectAllButton">Select All</button> &nbsp;
+    <button id="deselectAllButton">Deselect All</button>
 </div>
 <div class = "col-md-8">
 <h3 align="center" id="currentYear"></h3>
@@ -108,7 +110,7 @@ function populateControls() {
         checkbox.name = "name";
         checkbox.value = "" + i;
         checkbox.id = "country-" + i;
-getCountryList()
+        getCountryList()
         var label = document.createElement('label')
         label.htmlFor = "id";
         label.appendChild(document.createTextNode(getCountryList()[i].name));
@@ -125,6 +127,15 @@ function getSelectedCountries() {
     });
     return res;
 }
+
+$("#selectAllButton").click(function() {
+
+});
+
+$("#deselectAllButton").click(function() {
+
+});
+
 $("#webglCanvas").mousemove(function (event) {
     var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
     var x = event.clientX - clientRect.left;
@@ -362,6 +373,19 @@ for (i in getCountryList()) {
     if (getCountryList()[i].region == "America") {colors[getCountryList()[i].name] = green}
     if (getCountryList()[i].region == "Asia") {colors[getCountryList()[i].name] = blue}
     if (getCountryList()[i].region == "Africa") {colors[getCountryList()[i].name] = yellow}
+}
+    
+function getTrend(idx){
+    var out = [];
+    var last = null;
+    for(i in data){
+        if(data[i].index == idx){
+            out.push(data[i].coord[0]);
+            out.push(data[i].coord[1]);
+            out.push(-0.5);
+        }
+    }
+    return out;
 }
 // Render Loop
 function renderLoop() {
