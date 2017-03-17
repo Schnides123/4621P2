@@ -362,6 +362,19 @@ for (i in getCountryList()) {
     if (getCountryList()[i].region == "Asia") {colors[getCountryList()[i].name] = blue}
     if (getCountryList()[i].region == "Africa") {colors[getCountryList()[i].name] = yellow}
 }
+	
+function getTrend(idx){
+	var out = [];
+	var last = null;
+	for(i in data){
+		if(data[i].index == idx){
+			out.push(data[i].coord[0]);
+			out.push(data[i].coord[1]);
+			out.push(-0.5);
+		}
+	}
+	return out;
+}
 // Render Loop
 function renderLoop() {
     gl.useProgram(shaderProgram);
