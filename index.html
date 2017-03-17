@@ -387,6 +387,7 @@ function getTrend(idx){
     }
     return out;
 }
+var singleCountry = false;
 // Render Loop
 function renderLoop() {
     gl.useProgram(shaderProgram);
@@ -428,6 +429,15 @@ function renderLoop() {
             vertices.push(centery);
             vertices.push(-0.1);
         }
+		if(singleCountry){
+			var index = getSelectedCountries()[0];
+			var trendcoords = getTrend(index);
+			var trendbuff = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, trendbuff);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(trendcoords), gl.STATIC_DRAW);
+			gl.drawArrays(gl.LINE_STRIP, 0, trendcoords.length/3);
+		}
+		
         var buff2 = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
