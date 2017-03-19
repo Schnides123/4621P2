@@ -96,6 +96,11 @@
     <div style="text-align: right;" class="col-md-1">Trans:</div>
     <div class="col-sm-2" id="transparencySlider"></div>
 </div>
+<!-- Circle Slider -->
+<div class="row" style="margin-top: 15px;">
+    <div style="text-align: right;" class="col-md-1">Circle scale:</div>
+    <div class="col-sm-2" id="circleSlider"></div>
+</div>
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="js/jquery-3.1.1.min.js"></script>
@@ -211,7 +216,7 @@ $("#webglCanvas").mousedown(function (event) {
 populateControls();
     
 var xmax = 0, ymax = 0; 
-var xIsLog = false, yIsLog = false;
+var xIsLog = true, yIsLog = false;
 var vertices;
     
     //rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
@@ -300,6 +305,12 @@ $("#lifescale").on('change', function() {
 var transparencySlider = $("#transparencySlider");
 transparencySlider.slider({
     min: 0, max: 1, step: 0.1, value: 0
+});
+
+// Transparency slider
+var circleSlider = $("#circleSlider");
+circleSlider.slider({
+    min: 0.01, max: 0.3, step: 0.01, value: 0.05
 });
     
 // Year slider and the play button.
@@ -543,7 +554,7 @@ function renderLoop() {
         }
     }
     for (var i = data.length - 1; i >= 0; i--) {
-        var biggest = 0.05;
+        var biggest = $("#circleSlider").slider("value");
         data[i].radius = Math.pow(data[i].population,0.3)/Math.pow(maxPopulation,0.3)*biggest;
         if (hovered == i) {
             data[i].color = [data[i].color[0],data[i].color[1],data[i].color[2],1];
