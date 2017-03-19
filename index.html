@@ -477,17 +477,17 @@ function renderLoop() {
         gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
         gl.drawArrays(gl.TRIANGLES, 0, vertices.length/3);
     }
-    function drawHighlight(centerx, centery, r) {
+    function drawHighlight(centerx, centery, r, color, zindex) {
         var vertices = [];
         var numVertices = 10;
         for (var i = 0; i < numVertices; i++) {
             // This vertex, the next vertex, and the center each time
             vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
             vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
-            vertices.push(-1);
+            vertices.push(zindex);
             vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
             vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
-            vertices.push(-1);
+            vertices.push(zindex);
         }
         var buff2 = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
@@ -498,7 +498,6 @@ function renderLoop() {
         gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
         // Enable the attribute
         gl.enableVertexAttribArray(coord);
-        color = [1, 0, 1, 1];
         gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
         gl.drawArrays(gl.LINES, 0, vertices.length/3);
     }
@@ -544,11 +543,12 @@ function renderLoop() {
         	data[i].color = [data[i].color[0],data[i].color[1],data[i].color[2],1];
         }
         drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color);
+        drawHighlight(data[i].coord[0], data[i].coord[1], data[i].radius + 0.001, [0, 0, 0, 1], -0.1);
     }
     if (hovered != -1) {
-        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.01);
-        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.02);
-        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.03);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.01, [1, 0, 1, 1], -1);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.02, [1, 0, 1, 1], -1);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.03, [1, 0, 1, 1], -1);
     }
     window.requestAnimationFrame(renderLoop);
 }
