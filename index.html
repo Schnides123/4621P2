@@ -525,7 +525,7 @@ function renderLoop() {
             var gdp = getGdpPerCapita()[name][p];
             var life_expectancy = getLifeExpectancy()[name][p];
             var population = getPopulation()[name][p];
-            if (!population || !life_expectancy || !name) {
+            if (!population || !life_expectancy || !name || !gdp) {
                 continue;
             }
             maxPopulation = Math.max(maxPopulation, population);
