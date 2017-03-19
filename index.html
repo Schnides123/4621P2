@@ -208,8 +208,13 @@ $("#webglCanvas").mousedown(function (event) {
             intersection = data[i].index;
         }
     }
+    console.log(intersection);
     if (intersection != -1) {
-        $("#country-" + intersection).attr('checked', true);
+        if ($("#country-" + intersection).prop('checked') == false) {
+            $("#country-" + intersection).attr('checked', true);
+        } else {
+            $("#country-" + intersection).attr('checked', false);
+        }
     }
     hovered = -1;
 });
@@ -524,7 +529,9 @@ function renderLoop() {
     var anyChecked = false;
     for (i in getCountryList()) {
         if ($("#country-" + i).prop('checked')) {
-            countries.push(getCountryList()[i]);
+            var c = getCountryList()[i];
+            c.index = i;
+            countries.push(c);
             anyChecked = true;
         }
     }
@@ -550,7 +557,7 @@ function renderLoop() {
                 continue;
             }
             maxPopulation = Math.max(maxPopulation, population);
-            data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: i, gdp: gdp, life_expectancy: life_expectancy, year: p + 1800, name: name});
+            data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: countries[i].index ? countries[i].index : i, gdp: gdp, life_expectancy: life_expectancy, year: p + 1800, name: name});
         }
     }
     for (var i = data.length - 1; i >= 0; i--) {
