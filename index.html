@@ -453,18 +453,12 @@ function drawTrend(idx, color){
 }
 
 function drawCircle(centerx, centery, r, color, zindex) {
-    var vertices = [];
+    var vertices = [centerx, centery, zindex];
     var numVertices = 10;
-    for (var i = 0; i < numVertices; i++) {
+    for (var i = 0; i <= numVertices; i++) {
         // This vertex, the next vertex, and the center each time
         vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
         vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
-        vertices.push(zindex);
-        vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
-        vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
-        vertices.push(zindex);
-        vertices.push(centerx);
-        vertices.push(centery);
         vertices.push(zindex);
     }
     
@@ -478,7 +472,7 @@ function drawCircle(centerx, centery, r, color, zindex) {
     // Enable the attribute
     gl.enableVertexAttribArray(coord);
     gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
-    gl.drawArrays(gl.TRIANGLES, 0, vertices.length/3);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length/3);
 }
 function drawHighlight(centerx, centery, r, color, zindex) {
     var vertices = [];
