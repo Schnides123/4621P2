@@ -430,7 +430,7 @@ function renderLoop() {
     // Set the view port
     gl.viewport(0,0,canvas.width,canvas.height);
     // Draw the triangle
-    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,0]);
+    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,1]);
     gl.drawArrays(gl.LINES, 0, vertices.length/3);
     // POINTS, LINE_STRIP, LINE_LOOP, LINES,
     // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
