@@ -588,9 +588,7 @@ function renderLoop() {
         if (hovered == i) {
             data[i].color = [1,0,1,1];
             zindex = 0;
-        }
-
-        if (data[i].trend) {
+        } else if (data[i].trend) {
             zindex = 0.1;
         }
 
@@ -598,9 +596,9 @@ function renderLoop() {
         drawHighlight(data[i].coord[0], data[i].coord[1], data[i].radius + 0.001, [0, 0, 0, 1], zindex);
     }
     if (hovered != -1) {
-        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.01, [1, 0, 1, 1], zindex);
-        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.02, [1, 0, 1, 1], zindex);
-        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.03, [1, 0, 1, 1], zindex);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.01, [1, 0, 1, 1], 0);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.02, [1, 0, 1, 1], 0);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.03, [1, 0, 1, 1], 0);
     }
     window.requestAnimationFrame(renderLoop);
 }
