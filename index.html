@@ -280,7 +280,7 @@ function getCoord(nx, ny){
     out.push(0);
     return out;
 }
-	
+    
 // Gets data based on coordinates in range [-1,-1]x[1,1]
 function getData(coordx, coordy){
     var out = [];
@@ -292,11 +292,11 @@ function getData(coordx, coordy){
     out.push(ny);
     return out;
 }
-	
+    
 $("#gdpscale").on('change', function() {
   xIsLog = ( this.value == "log");
 });
-	
+    
 $("#lifescale").on('change', function() {
   yIsLog = ( this.value == "log");
 });
@@ -335,8 +335,10 @@ circleSlider.slider({
     playButton.click(function () {
         if (isPlaying) {
             stopPlay();
+            document.getElementById("playButton").innerHTML = "Play!"
         } else {
             startPlay();
+            document.getElementById("playButton").innerHTML = "Stop!"
         }
     });
     function updateUi() {
@@ -564,7 +566,7 @@ function renderLoop() {
         }
 
         drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color, zindex);
-        drawHighlight(data[i].coord[0], data[i].coord[1], data[i].radius + 0.001, [0, 0, 0, 1], zindex);
+        drawHighlight(data[i].coord[0], data[i].coord[1], data[i].radius + 0.001, [0, 0, 0, 1], -0.1);
     }
     if (hovered != -1) {
         drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.01, [1, 0, 1, 1], -1);
