@@ -147,8 +147,10 @@ function getSelectedCountries() {
     return res;
 }
 $("#selectAllButton").click(function() {
+    $("input[type=checkbox]").attr('checked',true);
 });
 $("#deselectAllButton").click(function() {
+    $("input[type=checkbox]").attr('checked',false);
 });
 $("#webglCanvas").mousemove(function (event) {
     var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
@@ -399,18 +401,18 @@ function getTrend(idx){
 var singleCountry = false;
 // Render Loop
 function renderLoop() {
-	var transparency = 1- $("#transparencySlider").slider("value");
-	var colors = {};
-	var red = [1, 0, 0, transparency];
-	var green = [0, 1, 0, transparency];
-	var blue = [0, 0, 1, transparency];
-	var yellow = [255, 255, 0, transparency];
-	for (i in getCountryList()) {
-	    if (getCountryList()[i].region == "Europe") {colors[getCountryList()[i].name] = red}
-	    if (getCountryList()[i].region == "America") {colors[getCountryList()[i].name] = green}
-	    if (getCountryList()[i].region == "Asia") {colors[getCountryList()[i].name] = blue}
-	    if (getCountryList()[i].region == "Africa") {colors[getCountryList()[i].name] = yellow}
-	}
+    var transparency = 1- $("#transparencySlider").slider("value");
+    var colors = {};
+    var red = [1, 0, 0, transparency];
+    var green = [0, 1, 0, transparency];
+    var blue = [0, 0, 1, transparency];
+    var yellow = [255, 255, 0, transparency];
+    for (i in getCountryList()) {
+        if (getCountryList()[i].region == "Europe") {colors[getCountryList()[i].name] = red}
+        if (getCountryList()[i].region == "America") {colors[getCountryList()[i].name] = green}
+        if (getCountryList()[i].region == "Asia") {colors[getCountryList()[i].name] = blue}
+        if (getCountryList()[i].region == "Africa") {colors[getCountryList()[i].name] = yellow}
+    }
 
     gl.useProgram(shaderProgram);
     /*======= Associating shaders to buffer objects ======*/
@@ -430,7 +432,7 @@ function renderLoop() {
     // Set the view port
     gl.viewport(0,0,canvas.width,canvas.height);
     // Draw the triangle
-    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,1]);
+    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,0]);
     gl.drawArrays(gl.LINES, 0, vertices.length/3);
     // POINTS, LINE_STRIP, LINE_LOOP, LINES,
     // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
