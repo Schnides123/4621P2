@@ -564,7 +564,7 @@ function renderLoop() {
         }
 
         drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color, zindex);
-        drawHighlight(data[i].coord[0], data[i].coord[1], data[i].radius + 0.001, [0, 0, 0, 1], -0.1);
+        drawHighlight(data[i].coord[0], data[i].coord[1], data[i].radius + 0.001, [0, 0, 0, 1], zindex);
     }
     if (hovered != -1) {
         drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.01, [1, 0, 1, 1], -1);
