@@ -346,7 +346,12 @@ if (!gl) {
         alert("Cannot get WebGL context!");
     }
 }
-vertices = getScale(150000.0, 90.0, 1000, 10, true, false);
+if (xIsLog) {
+    vertices = getScale(150000.0, 90.0, 1000, 10, xIsLog, yIsLog);
+}
+else{
+    vertices = getScale(150000.0, 90.0, 10000, 10, xIsLog, yIsLog);
+}
 // Create an empty buffer object
 var vertex_buffer = gl.createBuffer();
 // Bind appropriate array buffer to it
@@ -403,7 +408,7 @@ var singleCountry = false;
 function renderLoop() {
     var transparency = 1- $("#transparencySlider").slider("value");
     if (hovered == -1) {
-    	transparency = 1;
+        transparency = 1;
     }
     var colors = {};
     var red = [1, 0, 0, transparency];
@@ -532,7 +537,7 @@ function renderLoop() {
         var biggest = 0.05;
         data[i].radius = Math.pow(data[i].population,0.3)/Math.pow(maxPopulation,0.3)*biggest;
         if (hovered == i) {
-        	data[i].color = [data[i].color[0],data[i].color[1],data[i].color[2],1];
+            data[i].color = [data[i].color[0],data[i].color[1],data[i].color[2],1];
         }
         drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color);
         drawHighlight(data[i].coord[0], data[i].coord[1], data[i].radius + 0.001, [0, 0, 0, 1], -0.1);
