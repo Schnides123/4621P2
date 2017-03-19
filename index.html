@@ -85,8 +85,8 @@
         </th>
         <th>Life Expectancy Scale
             <select id ="lifescale">
+			<option value="linear">Linear</option>
             <option value="log">Log</option>
-            <option value="linear">Linear</option>
             </select>
         </th>
     </tr>
@@ -302,13 +302,17 @@ function getData(coordx, coordy){
     out.push(ny);
     return out;
 }
-    
+
+var vertices;
 $("#gdpscale").on('change', function() {
-  xIsLog = ( this.value == "log");
+  	xIsLog = ( this.value == "log");
+	vertices = getScale(140000.0, 90.0, 10000.0, 10.0, xIsLog, yIsLog);
+	
 });
     
 $("#lifescale").on('change', function() {
-  yIsLog = ( this.value == "log");
+  	yIsLog = ( this.value == "log");
+	vertices = getScale(140000.0, 90.0, 10000.0, 10.0, xIsLog, yIsLog);
 });
 
 // Transparency slider
