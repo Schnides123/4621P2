@@ -507,14 +507,11 @@ function drawHighlight(centerx, centery, r, color, zindex) {
 // Render Loop
 function renderLoop() {
     var transparency = 1- $("#transparencySlider").slider("value");
-    if (hovered == -1) {
-        transparency = 1;
-    }
     var colors = {};
-    var red = [1, 0, 0, transparency];
-    var green = [0, 1, 0, transparency];
-    var blue = [0, 0, 1, transparency];
-    var yellow = [255, 255, 0, transparency];
+    var red = [1, 0, 0, 1];
+    var green = [0, 1, 0, 1];
+    var blue = [0, 0, 1, 1];
+    var yellow = [255, 255, 0, 1];
     for (i in getCountryList()) {
         if (getCountryList()[i].region == "Europe") {colors[getCountryList()[i].name] = red}
         if (getCountryList()[i].region == "America") {colors[getCountryList()[i].name] = green}
@@ -559,19 +556,10 @@ function renderLoop() {
             anyChecked = true;
         }
     }
-    if (countries.length == 0) {
-        countries = getCountryList();
-    }
-    if (anyChecked) {
-        min = 0;
-        max = year;
-    } else {
-        min = year;
-        max = year;
-    }
     data = [];
     var maxPopulation = -1;
-    for (var p = min; p <= max; p++) {
+    // Show all years for selected countries
+    for (var p = 0; p <= year; p++) {
         for (i in countries) {
             var name = countries[i].name;
             var gdp = getGdpPerCapita()[name][p];
@@ -581,8 +569,21 @@ function renderLoop() {
                 continue;
             }
             maxPopulation = Math.max(maxPopulation, population);
-            data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: countries[i].index ? countries[i].index : i, gdp: gdp, life_expectancy: life_expectancy, year: p + 1800, name: name});
+            data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: countries[i].index ? countries[i].index : i, gdp: gdp, life_expectancy: life_expectancy, year: p + 1800, name: name, trend: true});
         }
+    }
+    // Show rest of data transparently
+    for (i in getCountryList()) {
+        var name = getCountryList()[i].name;
+        var gdp = getGdpPerCapita()[name][year];
+        var life_expectancy = getLifeExpectancy()[name][year];
+        var population = getPopulation()[name][year];
+        if (!population || !life_expectancy || !name || !gdp) {
+            continue;
+        }
+        maxPopulation = Math.max(maxPopulation, population);
+        var color = [colors[name][0], colors[name][1], colors[name][2], countries.length > 0 || hovered != -1 ? transparency : 1];
+        data.push({coord: getCoord(gdp, life_expectancy), population: population, color: color, radius: 0, index: i, gdp: gdp, life_expectancy: life_expectancy, year: p + 1800, name: name, trend: false});
     }
     for (var i = data.length - 1; i >= 0; i--) {
         var biggest = $("#circleSlider").slider("value");
@@ -591,6 +592,10 @@ function renderLoop() {
         var zindex = -0.1;
         if (hovered == i) {
             data[i].color = [1,0,1,1];
+            zindex = -1;
+        }
+
+        if (data[i].trend) {
             zindex = -1;
         }
 
