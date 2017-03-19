@@ -437,6 +437,59 @@ function getTrend(idx){
     return out;
 }
 var singleCountry = false;
+
+function drawCircle(centerx, centery, r, color, zindex) {
+    var vertices = [];
+    var numVertices = 10;
+    for (var i = 0; i < numVertices; i++) {
+        // This vertex, the next vertex, and the center each time
+        vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
+        vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
+        vertices.push(zindex);
+        vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
+        vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
+        vertices.push(zindex);
+        vertices.push(centerx);
+        vertices.push(centery);
+        vertices.push(zindex);
+    }
+    
+    var buff2 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    // Get the attribute location
+    var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+    // Point an attribute to the currently bound VBO
+    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+    // Enable the attribute
+    gl.enableVertexAttribArray(coord);
+    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
+    gl.drawArrays(gl.TRIANGLES, 0, vertices.length/3);
+}
+function drawHighlight(centerx, centery, r, color, zindex) {
+    var vertices = [];
+    var numVertices = 10;
+    for (var i = 0; i < numVertices; i++) {
+        // This vertex, the next vertex, and the center each time
+        vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
+        vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
+        vertices.push(zindex);
+        vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
+        vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
+        vertices.push(zindex);
+    }
+    var buff2 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    // Get the attribute location
+    var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+    // Point an attribute to the currently bound VBO
+    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+    // Enable the attribute
+    gl.enableVertexAttribArray(coord);
+    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
+    gl.drawArrays(gl.LINES, 0, vertices.length/3);
+}
 // Render Loop
 function renderLoop() {
     var transparency = 1- $("#transparencySlider").slider("value");
@@ -479,58 +532,6 @@ function renderLoop() {
     // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     // Second object
-    function drawCircle(centerx, centery, r, color, zindex) {
-        var vertices = [];
-        var numVertices = 10;
-        for (var i = 0; i < numVertices; i++) {
-            // This vertex, the next vertex, and the center each time
-            vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
-            vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
-            vertices.push(zindex);
-            vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
-            vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
-            vertices.push(zindex);
-            vertices.push(centerx);
-            vertices.push(centery);
-            vertices.push(zindex);
-        }
-        
-        var buff2 = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        // Get the attribute location
-        var coord = gl.getAttribLocation(shaderProgram, "coordinates");
-        // Point an attribute to the currently bound VBO
-        gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
-        // Enable the attribute
-        gl.enableVertexAttribArray(coord);
-        gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
-        gl.drawArrays(gl.TRIANGLES, 0, vertices.length/3);
-    }
-    function drawHighlight(centerx, centery, r, color, zindex) {
-        var vertices = [];
-        var numVertices = 10;
-        for (var i = 0; i < numVertices; i++) {
-            // This vertex, the next vertex, and the center each time
-            vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
-            vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
-            vertices.push(zindex);
-            vertices.push(r*Math.cos(2*(i+1)*Math.PI/numVertices) + centerx);
-            vertices.push(r*Math.sin(2*(i+1)*Math.PI/numVertices) + centery);
-            vertices.push(zindex);
-        }
-        var buff2 = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        // Get the attribute location
-        var coord = gl.getAttribLocation(shaderProgram, "coordinates");
-        // Point an attribute to the currently bound VBO
-        gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
-        // Enable the attribute
-        gl.enableVertexAttribArray(coord);
-        gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
-        gl.drawArrays(gl.LINES, 0, vertices.length/3);
-    }
     year = yearSlider.slider("value") - 1800;
     var min, max;
     var countries = [];
