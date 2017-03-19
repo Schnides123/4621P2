@@ -78,13 +78,13 @@
 <table>
     <tr>
         <th>GDP Scale 
-            <select>
+            <select id="gdpscale">
             <option value="log">Log</option>
             <option value="linear">Linear</option>
             </select>
         </th>
         <th>Life Expectancy Scale
-            <select>
+            <select id ="lifescale">
             <option value="log">Log</option>
             <option value="linear">Linear</option>
             </select>
@@ -96,7 +96,6 @@
     <div style="text-align: right;" class="col-md-1">Trans:</div>
     <div class="col-sm-2" id="transparencySlider"></div>
 </div>
-
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="js/jquery-3.1.1.min.js"></script>
@@ -213,6 +212,7 @@ populateControls();
     
 var xmax = 0, ymax = 0; 
 var xIsLog = false, yIsLog = false;
+var vertices;
     
     //rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
 function getScale(rx, ry, incx, incy, logx, logy){
@@ -275,6 +275,7 @@ function getCoord(nx, ny){
     out.push(0);
     return out;
 }
+	
 // Gets data based on coordinates in range [-1,-1]x[1,1]
 function getData(coordx, coordy){
     var out = [];
@@ -286,6 +287,14 @@ function getData(coordx, coordy){
     out.push(ny);
     return out;
 }
+	
+$("#gdpscale").on('change', function() {
+  xIsLog = ( this.value == "log");
+});
+	
+$("#lifescale").on('change', function() {
+  yIsLog = ( this.value == "log");
+});
 
 // Transparency slider
 var transparencySlider = $("#transparencySlider");
