@@ -148,8 +148,10 @@ function getSelectedCountries() {
     return res;
 }
 $("#selectAllButton").click(function() {
+    $("input[type=checkbox]").attr('checked',true);
 });
 $("#deselectAllButton").click(function() {
+    $("input[type=checkbox]").attr('checked',false);
 });
 $("#webglCanvas").mousemove(function (event) {
     var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
@@ -210,10 +212,8 @@ $("#webglCanvas").mousedown(function (event) {
     selected = intersection;
 });
 populateControls();
-
 var xmax = 0, ymax = 0;
 var xIsLog = false, yIsLog = false;
-
     //rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
 function getScale(rx, ry, incx, incy, logx, logy){
     var gridlines = [];
@@ -286,14 +286,11 @@ function getData(coordx, coordy){
     out.push(ny);
     return out;
 }
-
 //Transparency slider
-
     var transparencySlider = $("#transparencySlider");
     transparencySlider.slider({
         min: 0, max: 1, step: 0.1, value: 0
     });
-
 // Year slider and the play button.
     var yearSlider = $("#yearSlider");
     var playButton = $("#playButton");
@@ -338,7 +335,6 @@ function getData(coordx, coordy){
         window.requestAnimationFrame(updateUi);
     }
     window.requestAnimationFrame(updateUi);
-
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
 if (!gl) {
@@ -385,7 +381,6 @@ gl.linkProgram(shaderProgram);
 // Use the combined shader program object
 var compilationLog = gl.getShaderInfoLog(vertShader) + gl.getShaderInfoLog(fragShader);
 console.log('Shader compiler log: ' + compilationLog);
-
 //returns points for a line_strip of all points for any country with index idx.
 function getTrend(idx){
     var out = [];
@@ -449,7 +444,6 @@ function renderLoop() {
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(trendcoords), gl.STATIC_DRAW);
             gl.drawArrays(gl.LINE_STRIP, 0, trendcoords.length/3);
         }
-
         var buff2 = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
