@@ -402,6 +402,9 @@ var singleCountry = false;
 // Render Loop
 function renderLoop() {
     var transparency = 1- $("#transparencySlider").slider("value");
+    if (hovered == -1) {
+    	transparency = 1;
+    }
     var colors = {};
     var red = [1, 0, 0, transparency];
     var green = [0, 1, 0, transparency];
@@ -537,6 +540,9 @@ function renderLoop() {
     for (var i = 0; i < data.length; i++) {
         var biggest = 0.05;
         data[i].radius = Math.pow(data[i].population,0.3)/Math.pow(maxPopulation,0.3)*biggest;
+        if (hovered == i) {
+        	data[i].color = [data[i].color[0],data[i].color[1],data[i].color[2],1];
+        }
         drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color);
     }
     if (hovered != -1) {
