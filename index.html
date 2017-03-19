@@ -424,19 +424,28 @@ var compilationLog = gl.getShaderInfoLog(vertShader) + gl.getShaderInfoLog(fragS
 console.log('Shader compiler log: ' + compilationLog);
     
 //returns points for a line_strip of all points for any country with index idx.
-function getTrend(idx){
+function drawTrend(idx){
     var out = [];
     var last = null;
     for(i in data){
         if(data[i].index == idx){
             out.push(data[i].coord[0]);
             out.push(data[i].coord[1]);
-            out.push(-0.5);
+            out.push(0);
         }
     }
-    return out;
+    var buff2 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(out), gl.STATIC_DRAW);
+    // Get the attribute location
+    var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+    // Point an attribute to the currently bound VBO
+    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+    // Enable the attribute
+    gl.enableVertexAttribArray(coord);
+    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,1]);
+    gl.drawArrays(gl.LINE_STRIP, 0, out.length/3);
 }
-var singleCountry = false;
 
 function drawCircle(centerx, centery, r, color, zindex) {
     var vertices = [];
@@ -541,6 +550,7 @@ function renderLoop() {
             var c = getCountryList()[i];
             c.index = i;
             countries.push(c);
+            drawTrend(i);
             anyChecked = true;
         }
     }
@@ -596,7 +606,7 @@ renderLoop();
 
     <ul>
         <li>Please list your team members with NetID in this unordered list.</li>
-        <li>Josh Beinhacker (jpb345), Aishwarya Sing (as2539), Alex Schneider (aas339), Spencer Weiss (sbw66)</li>
+        <li>Josh Beinhacker (jpb345), Aishwarya Singh (as2539), Alex Schneider (aas339), Spencer Weiss (sbw66)</li>
     </ul>
 </div>
 
