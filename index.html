@@ -346,6 +346,7 @@ circleSlider.slider({
         if (isPlaying) {
             if (year == 2015) {
                 stopPlay();
+                document.getElementById("playButton").innerHTML = "Play!"
             } else {
                 var currentTime = performance.now();
                 if (currentTime - lastYearUpdate > yearUpdateInterval) {
