@@ -77,7 +77,7 @@
 </div>
 <table>
     <tr>
-        <th>GDP Scale
+        <th>GDP Scale 
             <select>
             <option value="log">Log</option>
             <option value="linear">Linear</option>
@@ -91,12 +91,12 @@
         </th>
     </tr>
 </table>
-
 <!-- Transparency Slider -->
 <div class="row" style="margin-top: 15px;">
     <div style="text-align: right;" class="col-md-1">Trans:</div>
     <div class="col-sm-2" id="transparencySlider"></div>
 </div>
+
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="js/jquery-3.1.1.min.js"></script>
@@ -122,7 +122,6 @@ void main(void) {
 <script type="text/javascript">
 var data = [];
 var hovered = -1;
-var selected = -1;
 function populateControls() {
     var container = document.getElementById("country_list");
     for (let i = 0; i < getCountryList().length; i++) {
@@ -165,21 +164,17 @@ $("#webglCanvas").mousemove(function (event) {
     for (i in data) {
         var distance = Math.sqrt(Math.pow(xc-data[i].coord[0],2) + Math.pow(yc-data[i].coord[1],2));
         if (distance < data[i].radius) {
-            intersection = data[i].index;
+            intersection = i;
             break;
         }
     }
     hovered = intersection;
     if (hovered != -1) {
-        var name = getCountryList()[hovered].name;
-        var gdp = getGdpPerCapita()[name][year];
-        var life_expectancy = getLifeExpectancy()[name][year];
-        var population = getPopulation()[name][year];
-        $("#point_country").html(name);
-        $("#point_year").html(yearSlider.slider("value"));
-        $("#point_gdp").html(gdp);
-        $("#point_life_expectancy").html(life_expectancy);
-        $("#point_population").html(population);
+        $("#point_country").html(data[hovered].name);
+        $("#point_year").html(data[hovered].year);
+        $("#point_gdp").html(data[hovered].gdp);
+        $("#point_life_expectancy").html(data[hovered].life_expectancy);
+        $("#point_population").html(data[hovered].population);
     } else {
         $("#point_country").html("");
         $("#point_year").html("");
@@ -207,13 +202,16 @@ $("#webglCanvas").mousedown(function (event) {
             intersection = data[i].index;
         }
     }
-    selected = intersection;
+    if (intersection != -1) {
+        $("#country-" + intersection).attr('checked', true);
+    }
+    hovered = -1;
 });
 populateControls();
-
-var xmax = 0, ymax = 0;
+    
+var xmax = 0, ymax = 0; 
 var xIsLog = false, yIsLog = false;
-
+    
     //rx: range-x, ry: range-y, incx/y: increments for x/y, logx: is x scale linear or logarithmic.
 function getScale(rx, ry, incx, incy, logx, logy){
     var gridlines = [];
@@ -287,13 +285,12 @@ function getData(coordx, coordy){
     return out;
 }
 
-//Transparency slider
-
-    var transparencySlider = $("#transparencySlider");
-    transparencySlider.slider({
-        min: 0, max: 1, step: 0.1, value: 0
-    });
-
+// Transparency slider
+var transparencySlider = $("#transparencySlider");
+transparencySlider.slider({
+    min: 0, max: 1, step: 0.1, value: 0
+});
+    
 // Year slider and the play button.
     var yearSlider = $("#yearSlider");
     var playButton = $("#playButton");
@@ -338,7 +335,7 @@ function getData(coordx, coordy){
         window.requestAnimationFrame(updateUi);
     }
     window.requestAnimationFrame(updateUi);
-
+    
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
 if (!gl) {
@@ -347,7 +344,7 @@ if (!gl) {
         alert("Cannot get WebGL context!");
     }
 }
-vertices = getScale(5000.0, 50.0, 5000, 10, xIsLog, yIsLog);
+vertices = getScale(5000.0, 90.0, 5000, 10, xIsLog, yIsLog);
 // Create an empty buffer object
 var vertex_buffer = gl.createBuffer();
 // Bind appropriate array buffer to it
@@ -385,7 +382,7 @@ gl.linkProgram(shaderProgram);
 // Use the combined shader program object
 var compilationLog = gl.getShaderInfoLog(vertShader) + gl.getShaderInfoLog(fragShader);
 console.log('Shader compiler log: ' + compilationLog);
-
+    
 //returns points for a line_strip of all points for any country with index idx.
 function getTrend(idx){
     var out = [];
@@ -402,6 +399,19 @@ function getTrend(idx){
 var singleCountry = false;
 // Render Loop
 function renderLoop() {
+	var transparency = 1- $("#transparencySlider").slider("value");
+	var colors = {};
+	var red = [1, 0, 0, transparency];
+	var green = [0, 1, 0, transparency];
+	var blue = [0, 0, 1, transparency];
+	var yellow = [255, 255, 0, transparency];
+	for (i in getCountryList()) {
+	    if (getCountryList()[i].region == "Europe") {colors[getCountryList()[i].name] = red}
+	    if (getCountryList()[i].region == "America") {colors[getCountryList()[i].name] = green}
+	    if (getCountryList()[i].region == "Asia") {colors[getCountryList()[i].name] = blue}
+	    if (getCountryList()[i].region == "Africa") {colors[getCountryList()[i].name] = yellow}
+	}
+
     gl.useProgram(shaderProgram);
     /*======= Associating shaders to buffer objects ======*/
     // Bind vertex buffer object
@@ -420,7 +430,7 @@ function renderLoop() {
     // Set the view port
     gl.viewport(0,0,canvas.width,canvas.height);
     // Draw the triangle
-    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0, transparency]);
+    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,0]);
     gl.drawArrays(gl.LINES, 0, vertices.length/3);
     // POINTS, LINE_STRIP, LINE_LOOP, LINES,
     // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
@@ -449,7 +459,7 @@ function renderLoop() {
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(trendcoords), gl.STATIC_DRAW);
             gl.drawArrays(gl.LINE_STRIP, 0, trendcoords.length/3);
         }
-
+        
         var buff2 = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
@@ -483,21 +493,9 @@ function renderLoop() {
         gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
         // Enable the attribute
         gl.enableVertexAttribArray(coord);
-        color = [1, 0, 1];
-        gl.uniform3fv(gl.getUniformLocation(shaderProgram,"color"), color);
+        color = [1, 0, 1, 1];
+        gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
         gl.drawArrays(gl.LINES, 0, vertices.length/3);
-    }
-    var transparency = 1- $("#transparencySlider").slider("value");
-    var colors = {};
-    var red = [255, 0, 0, transparency];
-    var green = [0, 255, 0, transparency];
-    var blue = [0, 0, 255, transparency];
-    var yellow = [255, 255, 0, transparency];
-    for (i in getCountryList()) {
-        if (getCountryList()[i].region == "Europe") {colors[getCountryList()[i].name] = red}
-        if (getCountryList()[i].region == "America") {colors[getCountryList()[i].name] = green}
-        if (getCountryList()[i].region == "Asia") {colors[getCountryList()[i].name] = blue}
-        if (getCountryList()[i].region == "Africa") {colors[getCountryList()[i].name] = yellow}
     }
     year = yearSlider.slider("value") - 1800;
     var min, max;
@@ -523,34 +521,26 @@ function renderLoop() {
     var maxPopulation = -1;
     for (var p = min; p <= max; p++) {
         for (i in countries) {
-            var name = getCountryList()[i].name;
+            var name = countries[i].name;
             var gdp = getGdpPerCapita()[name][p];
             var life_expectancy = getLifeExpectancy()[name][p];
             var population = getPopulation()[name][p];
-            var selected = $("#country-" + i).prop('checked');
-            if (anyChecked && !selected) {
-                continue;
-            }
             if (!population || !life_expectancy || !name) {
                 continue;
             }
             maxPopulation = Math.max(maxPopulation, population);
-            data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: i});
+            data.push({coord: getCoord(gdp, life_expectancy), population: population, color: colors[name], radius: 0, index: i, gdp: gdp, life_expectancy: life_expectancy, year: p + 1800, name: name});
         }
     }
-    var j = -1;
     for (var i = 0; i < data.length; i++) {
-        var biggest = 0.2;
+        var biggest = 0.05;
         data[i].radius = Math.pow(data[i].population,0.3)/Math.pow(maxPopulation,0.3)*biggest;
         drawCircle(data[i].coord[0], data[i].coord[1], data[i].radius, data[i].color);
-        if (data[i].index == hovered) {
-            j = i;
-        }
     }
-    if (j != -1) {
-        drawHighlight(data[j].coord[0], data[j].coord[1], data[j].radius + 0.01);
-        drawHighlight(data[j].coord[0], data[j].coord[1], data[j].radius + 0.02);
-        drawHighlight(data[j].coord[0], data[j].coord[1], data[j].radius + 0.03);
+    if (hovered != -1) {
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.01);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.02);
+        drawHighlight(data[hovered].coord[0], data[hovered].coord[1], data[hovered].radius + 0.03);
     }
     window.requestAnimationFrame(renderLoop);
 }
@@ -561,7 +551,7 @@ renderLoop();
 
     <ul>
         <li>Please list your team members with NetID in this unordered list.</li>
-        <li>Josh Beinhacker (jpb345), Aishwarya Singh (as2539), Alex Schneider (aas339), Spencer Weiss (sbw66)</li>
+        <li>Josh Beinhacker (jpb345), Aishwarya Sing (as2539), Alex Schneider (aas339), Spencer Weiss (sbw66)</li>
     </ul>
 </div>
 
