@@ -131,6 +131,20 @@ var lifemin = 20;
 var lifemax = 90;
 var data = [];
 var hovered = -1;
+function recomputeScale() {
+    if (xIsLog) {
+        vertices = getScale(150000.0, 90.0, 1000, 10, xIsLog, yIsLog);
+    }
+    else{
+        vertices = getScale(150000.0, 90.0, 10000, 10, xIsLog, yIsLog);
+    }
+    // Bind appropriate array buffer to it
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    // Pass the vertex data to the buffer
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    // Unbind the buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
 function populateControls() {
     var container = document.getElementById("country_list");
     for (let i = 0; i < getCountryList().length; i++) {
@@ -306,13 +320,12 @@ function getData(coordx, coordy){
 var vertices;
 $("#gdpscale").on('change', function() {
   	xIsLog = ( this.value == "log");
-	vertices = getScale(140000.0, 90.0, 10000.0, 10.0, xIsLog, yIsLog);
-	
+    recomputeScale();
 });
     
 $("#lifescale").on('change', function() {
   	yIsLog = ( this.value == "log");
-	vertices = getScale(140000.0, 90.0, 10000.0, 10.0, xIsLog, yIsLog);
+    recomputeScale();
 });
 
 // Transparency slider
@@ -383,20 +396,9 @@ if (!gl) {
         alert("Cannot get WebGL context!");
     }
 }
-if (xIsLog) {
-    vertices = getScale(150000.0, 90.0, 1000, 10, xIsLog, yIsLog);
-}
-else{
-    vertices = getScale(150000.0, 90.0, 10000, 10, xIsLog, yIsLog);
-}
-// Create an empty buffer object
 var vertex_buffer = gl.createBuffer();
-// Bind appropriate array buffer to it
-gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-// Pass the vertex data to the buffer
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-// Unbind the buffer
-gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+recomputeScale();
 /*=================== Shaders ====================*/
 // Vertex shader source code
 var vertCode = $("#vertexShader").html();
@@ -523,7 +525,7 @@ function renderLoop() {
 
     gl.useProgram(shaderProgram);
     /*======= Associating shaders to buffer objects ======*/
-    // Bind vertex buffer object
+    // Bind vertex buffer objectf
     gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
     // Get the attribute location
     var coord = gl.getAttribLocation(shaderProgram, "coordinates");
