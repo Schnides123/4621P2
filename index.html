@@ -227,7 +227,6 @@ $("#webglCanvas").mousedown(function (event) {
             intersection = data[i].index;
         }
     }
-    console.log(intersection);
     if (intersection != -1) {
         if ($("#country-" + intersection).prop('checked') == false) {
             $("#country-" + intersection).attr('checked', true);
@@ -430,7 +429,7 @@ var compilationLog = gl.getShaderInfoLog(vertShader) + gl.getShaderInfoLog(fragS
 console.log('Shader compiler log: ' + compilationLog);
     
 //returns points for a line_strip of all points for any country with index idx.
-function drawTrend(idx){
+function drawTrend(idx, color){
     var out = [];
     var last = null;
     for(i in data){
@@ -449,7 +448,7 @@ function drawTrend(idx){
     gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
     // Enable the attribute
     gl.enableVertexAttribArray(coord);
-    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,1]);
+    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
     gl.drawArrays(gl.LINE_STRIP, 0, out.length/3);
 }
 
@@ -556,7 +555,7 @@ function renderLoop() {
             var c = getCountryList()[i];
             c.index = i;
             countries.push(c);
-            drawTrend(i);
+            drawTrend(i, colors[c.name]);
             anyChecked = true;
         }
     }
