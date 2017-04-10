@@ -190,7 +190,26 @@ void main(void) {
             startPosition: startPosition
         };
     }
-
+	var root = {
+		parent: null,
+		matrix: mat4.create(),
+		children: [],
+		obj: null
+	}
+	var newNode = function(parent, obj, transformation){
+		return {
+			parent: parent,
+			matrix: transformation,
+			children: [],
+			obj: obj
+		} 
+	}
+	var getTransform = function(node){
+		if(parent == null) return node.matrix;
+		var out = mat4.create();
+		mat4.SIMD.multiply(out, getTransform(node.parent), this.matrix); 
+		return out;
+	}
     var maze = null;
     function updateMaze() {
         maze = createMazeFromStrings(getMazeStrings());
@@ -241,6 +260,8 @@ void main(void) {
        		getMazeStrings().startHeading = getMazeStrings().startHeading - Math.PI/2;
     	}
     });
+	
+	
 
     // TODO: Your code here.
     var canvas = document.getElementById("webglCanvas")
