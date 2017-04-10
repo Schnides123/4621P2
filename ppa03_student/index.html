@@ -204,41 +204,41 @@ void main(void) {
 
     	if (e.keyCode == '38') {
         	// up arrow
-        	if(createMazeFromStrings(strings).c == "N"){
+        	if(getMazeStrings().c == "N"){
 				startPosition = [x, y + 1];
         	}
-        	if(createMazeFromStrings(strings).c == "S"){
+        	if(getMazeStrings().c == "S"){
         		startPosition = [x, y - 1];
         	}
-        	if(createMazeFromStrings(strings).c == "E"){
+        	if(getMazeStrings().c == "E"){
         		startPosition = [x + 1, y];
         	}
-        	if(createMazeFromStrings(strings).c == "W"){
+        	if(getMazeStrings().c == "W"){
         		startPosition = [x - 1, y];
         	}
     	}
     	else if (e.keyCode == '40') {
         	// down arrow
-        	if(createMazeFromStrings(strings).c == "N"){
+        	if(getMazeStrings().c == "N"){
 				startPosition = [x, y - 1];
         	}
-        	if(createMazeFromStrings(strings).c == "S"){
+        	if(getMazeStrings().c == "S"){
         		startPosition = [x, y + 1];
         	}
-        	if(createMazeFromStrings(strings).c == "E"){
+        	if(getMazeStrings().c == "E"){
         		startPosition = [x - 1, y];
         	}
-        	if(createMazeFromStrings(strings).c == "W"){
+        	if(getMazeStrings().c == "W"){
         		startPosition = [x + 1, y];
         	}
     	}
    		else if (e.keyCode == '37') {
        		// left arrow
-       		createMazeFromStrings(strings).startHeading = createMazeFromStrings(strings).startHeading + Math.PI/2;
+       		getMazeStrings().startHeading = getMazeStrings().startHeading + Math.PI/2;
     	}
     	else if (e.keyCode == '39') {
        		// right arrow
-       		       		createMazeFromStrings(strings).startHeading = createMazeFromStrings(strings).startHeading - Math.PI/2;
+       		getMazeStrings().startHeading = getMazeStrings().startHeading - Math.PI/2;
     	}
     });
 
