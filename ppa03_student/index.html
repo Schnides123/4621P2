@@ -200,6 +200,25 @@ void main(void) {
 
     $("#webglCanvas").keydown(function (event) {
         // TODO: Edit this so that the crawler responds to the arrow keys.
+        document.onkeydown = checkKey;
+        e = e || window.event;
+
+    	if (e.keyCode == '38') {
+        	// up arrow
+        	startPosition = [x + 1, y];
+    	}
+    	else if (e.keyCode == '40') {
+        	// down arrow
+        	startPosition = [x - 1, y];
+    	}
+   		else if (e.keyCode == '37') {
+       		// left arrow
+       		startHeading = startHeading + Math.PI/2;
+    	}
+    	else if (e.keyCode == '39') {
+       		// right arrow
+       		startHeading = startHeading + Math.PI/2;
+    	}
     });
 
     // TODO: Your code here.
