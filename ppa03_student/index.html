@@ -366,7 +366,7 @@ void main(void) {
          /*==================== MATRIX =====================*/
 
          function get_projection(angle, a, zMin, zMax) {
-            var ang = Math.tan((angle*.5)*Math.PI/180);//angle*.5
+            var ang = angle;//angle*.5
             return [
                0.5/ang, 0 , 0, 0,
                0, 0.5*a/ang, 0, 0,
@@ -374,14 +374,7 @@ void main(void) {
                0, 0, (-2*zMax*zMin)/(zMax-zMin), 0 
             ];
          }
-			
-         var proj_matrix = get_projection(40, canvas.width/canvas.height, 1, 100);
 
-         var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
-         var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
-
-         // translating z
-         view_matrix[14] = view_matrix[14]-6;//zoom
 
          /*==================== Rotation ====================*/
 
@@ -432,10 +425,11 @@ void main(void) {
 			
          var animate = function(time) {
 
+            var proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 1, 100);
+            var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -2,-5,-10,1];
+            var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+
             var dt = time-time_old;
-            rotateZ(mov_matrix, dt*0.005);//time
-            rotateY(mov_matrix, dt*0.002);
-            rotateX(mov_matrix, dt*0.003);
             time_old = time;
 
             gl.enable(gl.DEPTH_TEST);
@@ -445,6 +439,28 @@ void main(void) {
 
             gl.viewport(0.0, 0.0, canvas.width, canvas.height);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
+            gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
+            gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+            mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -3,-5,-10,1];
+            gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
+            gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
+            gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+            mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -4,-5,-10,1];
+            gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
+            gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
+            gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+            mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -4,-5,-11,1];
             gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
             gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
             gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
