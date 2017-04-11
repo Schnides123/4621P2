@@ -47,7 +47,7 @@
             <td>
 <textarea style="font-family: monospace" id="mazeTextArea" cols="25" rows="10">
 #####
-#...#
+#.#.#
 #N.##
 ##..#
 #####
@@ -420,9 +420,10 @@ void main(void) {
 
     var animate = function(time) {
 
-    var proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 1, 100);
+    var proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 0.1, 100);
     var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
-    var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, -5, -10,1];
+    // Compute view matrix based on start position
+    var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -maze.startPosition[0], -getEyeHeight(), maze.startPosition[1],1];
 
     var dt = time-time_old;
     time_old = time;
