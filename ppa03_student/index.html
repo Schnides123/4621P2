@@ -33,13 +33,13 @@
         <tr>
             <td align="right"><b>Field of view:</b></td>
             <td>
-                <input type="text" id="fovSpinner" value="45.0">
+                <input type="text" id="fovSpinner" value="40.0">
             </td>
         </tr>
         <tr>
             <td align="right"><b>Eye height:</b></td>
             <td>
-                <input type="text" id="eyeHeightSpinner" value="0.5">
+                <input type="text" id="eyeHeightSpinner" value="0.1">
             </td>
         </tr>
         <tr>
@@ -90,8 +90,9 @@ void main(void) {
 <script id="fragmentShader" type="x-shader/x-fragment">
 precision mediump float;
 varying vec3 vColor;
+uniform sampler2D texture;
 void main(void) {
-    gl_FragColor = vec4(vColor, 1.);
+    gl_FragColor = texture2D(texture, vColor.xy);
 }
 </script>
 <script>
@@ -152,13 +153,13 @@ void main(void) {
                 if (c == "N" || c == "E" || c == "W" || c == "S") {
                     if (startPosition == null) {
                         if (c == "N") {
-                            startHeading = Math.PI / 2;
-                        } else if (c == "E") {
                             startHeading = 0.0;
+                        } else if (c == "E") {
+                            startHeading = - Math.PI / 2;
                         } else if (c == "W") {
-                            startHeading = Math.PI;
+                            startHeading = Math.PI / 2;
                         } else if (c == "S") {
-                            startHeading = 3 * Math.PI / 2;
+                            startHeading = Math.PI;
                         }
                         startPosition = [x, y];
                     } else {
@@ -271,6 +272,7 @@ void main(void) {
     
 
     // TODO: Your code here.
+    var wallTexture; var floorTexture;
     var canvas = document.getElementById("webglCanvas")
     var gl = canvas.getContext("experimental-webgl");
     if (!gl) {
@@ -289,12 +291,12 @@ void main(void) {
          ];
 
     var colors = [
-    5,3,7, 5,3,7, 5,3,7, 5,3,7,
-    1,1,3, 1,1,3, 1,1,3, 1,1,3,
-    0,0,1, 0,0,1, 0,0,1, 0,0,1,
-    1,0,0, 1,0,0, 1,0,0, 1,0,0,
-    1,1,0, 1,1,0, 1,1,0, 1,1,0,
-    0,1,0, 0,1,0, 0,1,0, 0,1,0
+    0,0,7, 0,1,7, 1,1,7, 1,0,7,
+    0,0,7, 1,0,7, 1,1,7, 0,1,7,
+    0,0,7, 0,1,7, 1,1,7, 1,0,7,
+    0,0,7, 0,1,7, 1,1,7, 1,0,7,
+    0,0,7, 0,1,7, 1,1,7, 1,0,7,
+    0,0,7, 0,1,7, 1,1,7, 1,0,7
     ];
 
     var indices = [
@@ -424,6 +426,7 @@ void main(void) {
     var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
     // Compute view matrix based on start position
     var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -maze.startPosition[0], -getEyeHeight(), maze.startPosition[1],1];
+;
 
     var dt = time-time_old;
     time_old = time;
@@ -444,13 +447,19 @@ void main(void) {
     for (var i = 0; i < maze.data.length; i++) {
         for (var j = 0; j < maze.data[i].length; j++) {
             if (maze.data[i][j] == 1) {
-                //console.log("i: " + i + " j: " + j);
-                // i corresponds to depth (z)
-                // j corresponds to offset (x)
                 mov_matrix = [0.5,0,0,0, 0,0.5,0,0, 0,0,0.5,0, i,0,-j,1];
                 gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
                 gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
                 gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
+                if (gl.getUniformLocation(shaderProgram, "texture") != null) {
+                    // Step 1: Activate a "texture unit" of your choosing.
+                    gl.activeTexture(gl.TEXTURE0);
+                    // Step 2: Bind the texture you want to use.
+                    gl.bindTexture(gl.TEXTURE_2D, wallTexture);
+                    // Step 3: Set the uniform to the "index" of the texture unit you just activated.
+                    var textureLocation = gl.getUniformLocation(shaderProgram, "texture");
+                    gl.uniform1i(textureLocation, 0);
+                }
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
                 gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
             }
@@ -463,6 +472,15 @@ void main(void) {
             gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
             gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
             gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
+            if (gl.getUniformLocation(shaderProgram, "texture") != null) {
+                    // Step 1: Activate a "texture unit" of your choosing.
+                    gl.activeTexture(gl.TEXTURE0);
+                    // Step 2: Bind the texture you want to use.
+                    gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+                    // Step 3: Set the uniform to the "index" of the texture unit you just activated.
+                    var textureLocation = gl.getUniformLocation(shaderProgram, "texture");
+                    gl.uniform1i(textureLocation, 0);
+                }
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
             gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
         }
@@ -470,7 +488,42 @@ void main(void) {
         
     window.requestAnimationFrame(animate);
     }
-    animate(0);
+
+    var wallImage = new Image();
+    wallImage.onload = function() {
+        // Step 1: Create the texture object.
+        wallTexture = gl.createTexture();
+        // Step 2: Bind the texture object to the "target" TEXTURE_2D
+        gl.bindTexture(gl.TEXTURE_2D, wallTexture);
+        // Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
+        //         so that we don't have to deal with flipping the y-coordinate.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        // Step 4: Download the image data to the GPU.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, wallImage);
+        // Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
+        gl.generateMipmap(gl.TEXTURE_2D);
+        // Step 6: Clean up.  Tell WebGL that we are done with the target.
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        var floorImage = new Image();
+        floorImage.onload = function() {
+            // Step 1: Create the texture object.
+            floorTexture = gl.createTexture();
+            // Step 2: Bind the texture object to the "target" TEXTURE_2D
+            gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+            // Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
+            //         so that we don't have to deal with flipping the y-coordinate.
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            // Step 4: Download the image data to the GPU.
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+            // Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
+            gl.generateMipmap(gl.TEXTURE_2D);
+            // Step 6: Clean up.  Tell WebGL that we are done with the target.
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            animate(0);
+        };
+        floorImage.src = "floor.jpg";
+    };
+    wallImage.src = "wall.jpg";
 </script>
 
 </body>
