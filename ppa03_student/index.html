@@ -49,7 +49,12 @@
 #####
 #.#.#
 #N.##
-##..#
+#...#
+#...#
+#...#
+#...#
+#...#
+#...#
 #####
 </textarea>
                 <br>
@@ -154,12 +159,16 @@ void main(void) {
                     if (startPosition == null) {
                         if (c == "N") {
                             startHeading = 0.0;
+                            window.startDirection = c;
                         } else if (c == "E") {
                             startHeading = - Math.PI / 2;
+                            window.startDirection = c;
                         } else if (c == "W") {
                             startHeading = Math.PI / 2;
+                            window.startDirection = c;
                         } else if (c == "S") {
                             startHeading = Math.PI;
+                            window.startDirection = c;
                         }
                         startPosition = [x, y];
                     } else {
@@ -231,38 +240,49 @@ void main(void) {
 
         if (e.keyCode == '38') {
             // up arrow
-            if (maze.data[maze.startPosition[0]][maze.startPosition[1] + zOffset + 1] != 1) {
-                zOffset += 1;
+            if(startDirection == "N"){
+                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset + 1] != 1) {
+                    yOffset += 1;
+                    animateY = true;
+                }
             }
-            if(getMazeStrings().c == "N"){
-                maze.startPosition = [x, y + 1];
+            if(startDirection == "S"){
+                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset - 1] != 1) {
+                    yOffset -= 1;
+                }
             }
-            if(getMazeStrings().c == "S"){
-                maze.startPosition = [x, y - 1];
+            if(startDirection == "E"){
+                if (maze.data[maze.startPosition[0] + xOffset + 1][maze.startPosition[1]] != 1) {
+                    xOffset += 1;
+                }
             }
-            if(getMazeStrings().c == "E"){
-                maze.startPosition = [x + 1, y];
-            }
-            if(getMazeStrings().c == "W"){
-                maze.startPosition = [x - 1, y];
+            if(startDirection == "W"){
+                if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1]] != 1) {
+                    xOffset -= 1;
+                }
             }
         }
         else if (e.keyCode == '40') {
             // down arrow
-            if (maze.data[maze.startPosition[0]][maze.startPosition[1] + zOffset - 1] != 1) {
-                zOffset -= 1;
+            if(startDirection == "N"){
+                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset - 1] != 1) {
+                    yOffset -= 1;
+                }
             }
-            if(getMazeStrings().c == "N"){
-                maze.startPosition = [x, y - 1];
+            if(startDirection == "S"){
+                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset + 1] != 1) {
+                    yOffset += 1;
+                }
             }
-            if(getMazeStrings().c == "S"){
-                maze.startPosition = [x, y + 1];
+            if(startDirection == "E"){
+                if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1]] != 1) {
+                    xOffset -= 1;
+                }
             }
-            if(getMazeStrings().c == "E"){
-                maze.startPosition = [x - 1, y];
-            }
-            if(getMazeStrings().c == "W"){
-                maze.startPosition = [x + 1, y];
+            if(startDirection == "W"){
+                if (maze.data[maze.startPosition[0] + xOffset + 1][maze.startPosition[1]] != 1) {
+                    xOffset += 1;
+                }
             }
         }
         else if (e.keyCode == '37') {
@@ -424,26 +444,30 @@ void main(void) {
 
     /*================= Drawing ===========================*/
     var time_old = 0;
-    var zOffset = 0;
-
-
+    var yOffset = 0;
+    var xOffset = 0;
+    var currY = 0;
+    var currX = 0;
 
     var animate = function(time) {
+
+    var dt = time-time_old;
+    time_old = time;
+    if (currY < yOffset) {
+        currY = currY + 0.0008*dt;
+    }
+    if (currY > yOffset) {
+        currY = currY - 0.0008*dt;
+    }
 
     var proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 0.1, 100);
     var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
     // Compute view matrix based on start position
     // var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -maze.startPosition[0], -getEyeHeight(), maze.startPosition[1],1];
     var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, 0, 0,1];
-    rotateY(view_matrix, maze.startHeading);
-    mat4.invert(view_matrix, view_matrix);
     view_matrix[12] = -maze.startPosition[0];
     view_matrix[13] = -getEyeHeight();
-    view_matrix[14] = maze.startPosition[1] + zOffset;
-
-
-    var dt = time-time_old;
-    time_old = time;
+    view_matrix[14] = maze.startPosition[1] + currY;
 
     gl.enable(gl.DEPTH_TEST);
     //gl.depthFunc(gl.LEQUAL);
