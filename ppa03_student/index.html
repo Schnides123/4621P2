@@ -463,8 +463,9 @@ void main(void) {
     var proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 0.1, 100);
     var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
     // Compute view matrix based on start position
-    // var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, -maze.startPosition[0], -getEyeHeight(), maze.startPosition[1],1];
+
     var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, 0, 0,1];
+    rotateY(view_matrix, maze.startHeading);
     view_matrix[12] = -maze.startPosition[0];
     view_matrix[13] = -getEyeHeight();
     view_matrix[14] = maze.startPosition[1] + currY;
