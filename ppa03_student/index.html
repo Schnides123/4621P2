@@ -237,22 +237,22 @@ void main(void) {
         if (e.keyCode == '38') {
             // up arrow
             if(currDirection == "N"){
-                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset + 1] != 1) {
+                if (maze.data[maze.startPosition[0] + xOffset][maze.startPosition[1] + yOffset + 1] != 1) {
                     yOffset += 1;
                 }
             }
             if(currDirection == "S"){
-                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset - 1] != 1) {
+                if (maze.data[maze.startPosition[0] + xOffset][maze.startPosition[1] + yOffset - 1] != 1) {
                     yOffset -= 1;
                 }
             }
             if(currDirection == "E"){
-                if (maze.data[maze.startPosition[0] + xOffset + 1][maze.startPosition[1]] != 1) {
+                if (maze.data[maze.startPosition[0] + xOffset + 1][maze.startPosition[1] + yOffset] != 1) {
                     xOffset += 1;
                 }
             }
             if(currDirection == "W"){
-                if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1]] != 1) {
+                if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1] + yOffset] != 1) {
                     xOffset -= 1;
                 }
             }
@@ -260,22 +260,22 @@ void main(void) {
         else if (e.keyCode == '40') {
             // down arrow
             if(currDirection == "N"){
-                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset - 1] != 1) {
+                if (maze.data[maze.startPosition[0]+ xOffset][maze.startPosition[1] + yOffset - 1] != 1) {
                     yOffset -= 1;
                 }
             }
             if(currDirection == "S"){
-                if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset + 1] != 1) {
+                if (maze.data[maze.startPosition[0]+ xOffset][maze.startPosition[1] + yOffset + 1] != 1) {
                     yOffset += 1;
                 }
             }
             if(currDirection == "E"){
-                if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1]] != 1) {
+                if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1]+ yOffset] != 1) {
                     xOffset -= 1;
                 }
             }
             if(currDirection == "W"){
-                if (maze.data[maze.startPosition[0] - xOffset + 1][maze.startPosition[1]] != 1) {
+                if (maze.data[maze.startPosition[0] - xOffset + 1][maze.startPosition[1]+ yOffset] != 1) {
                     xOffset += 1;
                 }
             }
