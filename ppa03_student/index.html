@@ -101,6 +101,7 @@ void main(void) {
 }
 </script>
 <script>
+	var currDirection;
     $("#fovSpinner").spinner({
         min: 10.0,
         max: 80.0,
@@ -159,16 +160,16 @@ void main(void) {
                     if (startPosition == null) {
                         if (c == "N") {
                             startHeading = 0.0;
-                            window.startDirection = c;
+                            currDirection = c;
                         } else if (c == "E") {
                             startHeading = - Math.PI / 2;
-                            window.startDirection = c;
+                            currDirection = c;
                         } else if (c == "W") {
                             startHeading = Math.PI / 2;
-                            window.startDirection = c;
+                            currDirection = c;
                         } else if (c == "S") {
                             startHeading = Math.PI;
-                            window.startDirection = c;
+                            currDirection = c;
                         }
                         startPosition = [x, y];
                     } else {
@@ -240,23 +241,22 @@ void main(void) {
 
         if (e.keyCode == '38') {
             // up arrow
-            if(startDirection == "N"){
+            if(currDirection == "N"){
                 if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset + 1] != 1) {
                     yOffset += 1;
-                    animateY = true;
                 }
             }
-            if(startDirection == "S"){
+            if(currDirection == "S"){
                 if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset - 1] != 1) {
                     yOffset -= 1;
                 }
             }
-            if(startDirection == "E"){
+            if(currDirection == "E"){
                 if (maze.data[maze.startPosition[0] + xOffset + 1][maze.startPosition[1]] != 1) {
                     xOffset += 1;
                 }
             }
-            if(startDirection == "W"){
+            if(currDirection == "W"){
                 if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1]] != 1) {
                     xOffset -= 1;
                 }
@@ -264,22 +264,22 @@ void main(void) {
         }
         else if (e.keyCode == '40') {
             // down arrow
-            if(startDirection == "N"){
+            if(currDirection == "N"){
                 if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset - 1] != 1) {
                     yOffset -= 1;
                 }
             }
-            if(startDirection == "S"){
+            if(currDirection == "S"){
                 if (maze.data[maze.startPosition[0]][maze.startPosition[1] + yOffset + 1] != 1) {
                     yOffset += 1;
                 }
             }
-            if(startDirection == "E"){
+            if(currDirection == "E"){
                 if (maze.data[maze.startPosition[0] + xOffset - 1][maze.startPosition[1]] != 1) {
                     xOffset -= 1;
                 }
             }
-            if(startDirection == "W"){
+            if(currDirection == "W"){
                 if (maze.data[maze.startPosition[0] + xOffset + 1][maze.startPosition[1]] != 1) {
                     xOffset += 1;
                 }
@@ -287,11 +287,15 @@ void main(void) {
         }
         else if (e.keyCode == '37') {
             // left arrow
+            var dirs = {'N': 'W', 'E': 'N', 'S': 'E', 'W': 'S'};
             rotationOffset -= Math.PI/2;
+            currDirection = dirs[currDirection];
         }
         else if (e.keyCode == '39') {
             // right arrow
+            var dirs = {'N': 'E', 'E': 'S', 'S': 'W', 'W': 'N'};
             rotationOffset += Math.PI/2;
+            currDirection = dirs[currDirection];
         }
         e.preventDefault();
     });
@@ -468,12 +472,18 @@ void main(void) {
     if (currRotation > rotationOffset) {
         currRotation -= 0.001*dt;
     }
+    if (currX < xOffset) {
+        currX += 0.0008*dt;
+    }
+    if (currX > xOffset) {
+        currX -= 0.0008*dt;
+    }
 
     proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 0.01, 100);
     // Compute view matrix based on start position
     var out = mat4.create();
     mat4.rotateY(out, out, maze.startHeading + currRotation);
-    mat4.translate(out, out, vec3.fromValues(-maze.startPosition[0], -getEyeHeight(), maze.startPosition[1] + currY))
+    mat4.translate(out, out, vec3.fromValues(-maze.startPosition[0] - currX, -getEyeHeight(), maze.startPosition[1] + currY))
     view_matrix = out.slice();
 
     gl.enable(gl.DEPTH_TEST);
