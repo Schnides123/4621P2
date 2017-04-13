@@ -388,7 +388,7 @@ void main(void) {
     /*==================== MATRIX =====================*/
 
     function get_projection(angle, a, zMin, zMax) {
-    var ang = angle;//angle*.5
+    var ang = angle*0.5;//angle*.5
     return [
        0.5/ang, 0 , 0, 0,
        0, 0.5*a/ang, 0, 0,
@@ -448,6 +448,7 @@ void main(void) {
     var xOffset = 0;
     var currY = 0;
     var currX = 0;
+    var proj_matrix, mov_matrix, view_matrix;
 
     var animate = function(time) {
 
@@ -460,15 +461,12 @@ void main(void) {
         currY = currY - 0.0008*dt;
     }
 
-    var proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 0.1, 100);
-    var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+    proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 0.01, 100);
     // Compute view matrix based on start position
-
-    var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, 0, 0,1];
-    rotateY(view_matrix, maze.startHeading);
-    view_matrix[12] = -maze.startPosition[0];
-    view_matrix[13] = -getEyeHeight();
-    view_matrix[14] = maze.startPosition[1] + currY;
+    var out = mat4.create();
+    mat4.rotateY(out, out, maze.startHeading);
+    mat4.translate(out, out, vec3.fromValues(-maze.startPosition[0], -getEyeHeight(), maze.startPosition[1] + currY))
+    view_matrix = out.slice();
 
     gl.enable(gl.DEPTH_TEST);
     //gl.depthFunc(gl.LEQUAL);
