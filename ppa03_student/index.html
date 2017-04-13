@@ -287,11 +287,11 @@ void main(void) {
         }
         else if (e.keyCode == '37') {
             // left arrow
-            maze.startHeading += Math.PI/2;
+            rotationOffset -= Math.PI/2;
         }
         else if (e.keyCode == '39') {
             // right arrow
-            maze.startHeading -= Math.PI/2;
+            rotationOffset += Math.PI/2;
         }
         e.preventDefault();
     });
@@ -446,8 +446,10 @@ void main(void) {
     var time_old = 0;
     var yOffset = 0;
     var xOffset = 0;
+    var rotationOffset = 0;
     var currY = 0;
     var currX = 0;
+    var currRotation = 0;
     var proj_matrix, mov_matrix, view_matrix;
 
     var animate = function(time) {
@@ -455,16 +457,22 @@ void main(void) {
     var dt = time-time_old;
     time_old = time;
     if (currY < yOffset) {
-        currY = currY + 0.0008*dt;
+        currY += 0.0008*dt;
     }
     if (currY > yOffset) {
-        currY = currY - 0.0008*dt;
+        currY -= 0.0008*dt;
+    }
+    if (currRotation < rotationOffset) {
+        currRotation += 0.001*dt;
+    }
+    if (currRotation > rotationOffset) {
+        currRotation -= 0.001*dt;
     }
 
     proj_matrix = get_projection(getFov(), canvas.width/canvas.height, 0.01, 100);
     // Compute view matrix based on start position
     var out = mat4.create();
-    mat4.rotateY(out, out, maze.startHeading);
+    mat4.rotateY(out, out, maze.startHeading + currRotation);
     mat4.translate(out, out, vec3.fromValues(-maze.startPosition[0], -getEyeHeight(), maze.startPosition[1] + currY))
     view_matrix = out.slice();
 
