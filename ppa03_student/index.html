@@ -85,7 +85,7 @@ varying vec3 vColor;
 varying vec4 vPosition;
 void main(void) {
     gl_Position = Pmatrix*Vmatrix*Mmatrix*vec4(position, 1.);
-	vPosition = Pmatrix*Vmatrix*Mmatrix * vec4(position, 1.0);
+	vPosition = Mmatrix * vec4(position, 1.0);
     vColor = color;
 }
 </script>
