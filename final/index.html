@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>CS 4621: PPA2 -- Data Visualization</title>
+    <title>CS 4621: Final</title>
 
     <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -28,70 +28,20 @@
         min-width: 200px;
         padding: 5px;
     }
-    #controls {
-        float: right;
-    }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>CS 4621 PPA2 <span class="subtitle">Data Visualization</span></h1>
+    <h1>CS 4621 PPA2 <span class="subtitle">Music Visualization</span></h1>
 <div id="controls" class="col-md-4">
-<h3>Country List</h3>
-<div id="country_list" style="width:200px;height:400px;overflow:scroll;"></div>
-    <button id="selectAllButton">Select All</button> &nbsp;
-    <button id="deselectAllButton">Deselect All</button>
-</div>
 <div class = "col-md-8">
-<h3 align="center" id="currentYear"></h3>
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
-</div>
-
-<!-- Play button and slider -->
-<div id = "yearslider">
-    <td>
-        <button id="playButton">Play!</button>
-        <td width="20"></td>
-        <table>
-                <td width="512" id="yearSlider"></td>
-        </table>
-    </td>
-</div>
-<table>
-    <tr>
-        <th>GDP Scale 
-            <select id="gdpscale">
-            <option value="log">Log</option>
-            <option value="linear">Linear</option>
-            </select>
-        </th>
-        <th>Life Expectancy Scale
-            <select id ="lifescale">
-			<option value="linear">Linear</option>
-            <option value="log">Log</option>
-            </select>
-        </th>
-    </tr>
-</table>
-<!-- Transparency Slider -->
-<div class="row" style="margin-top: 15px;">
-    <div style="text-align: right;" class="col-md-1">Trans:</div>
-    <div class="col-sm-2" id="transparencySlider"></div>
-</div>
-<!-- Circle Slider -->
-<div class="row" style="margin-top: 15px;">
-    <div style="text-align: right;" class="col-md-1">Circle scale:</div>
-    <div class="col-sm-2" id="circleSlider"></div>
 </div>
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="js/jquery-3.1.1.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
 <!-- Data -->
-<script src="data/country_list.js"></script>
-<script src="data/population.js"></script>
-<script src="data/gdp_per_capita.js"></script>
-<script src="data/life_expectancy.js"></script>
 <script id="vertexShader" type="x-shader/x-vertex">
 attribute vec3 coordinates;
 void main(void) {
@@ -114,9 +64,6 @@ $("#webglCanvas").mousemove(function (event) {
     // Convert to -1 to 1
     var xc = 2*x / clientRect.width - 1;
     var yc = 2*y / clientRect.height - 1;
-    var out = getData(xc, yc);
-    $("#cursor_gdp").html(out[0].toFixed(2));
-    $("#cursor_life_expectancy").html(out[1].toFixed(2));
 });
 $("#webglCanvas").mouseleave(function (event) {
 });
@@ -127,24 +74,7 @@ $("#webglCanvas").mousedown(function (event) {
     // Convert to -1 to 1
     var xc = 2*x / clientRect.width - 1;
     var yc = 2*y / clientRect.height - 1;
-    // Find the center closest to this in the cloned data
-    var intersection = -1;
-    for (i in data) {
-        var distance = Math.sqrt(Math.pow(xc-data[i].coord[0],2) + Math.pow(yc-data[i].coord[1],2));
-        if (distance < data[i].radius) {
-            intersection = data[i].index;
-        }
-    }
-    if (intersection != -1) {
-        if ($("#country-" + intersection).prop('checked') == false) {
-            $("#country-" + intersection).attr('checked', true);
-        } else {
-            $("#country-" + intersection).attr('checked', false);
-        }
-    }
-    hovered = -1;
 });
-populateControls();
     
 var xmax = 0, ymax = 0; 
 var xIsLog = true, yIsLog = false;
@@ -212,88 +142,8 @@ function getCoord(nx, ny){
     return out;
 }
     
-// Gets data based on coordinates in range [-1,-1]x[1,1]
-function getData(coordx, coordy){
-    var out = [];
-    var nx = ((coordx + 1.0) / 2.0)*(xIsLog ? Math.log10(xmax/100) : xmax);
-    var ny = ((coordy + 1.0) / 2.0)*(yIsLog ? Math.log10(ymax) : ymax);
-    nx = xIsLog ? Math.pow(10,nx)*100 : nx;
-    ny = yIsLog ? Math.pow(10,ny) : ny;
-    out.push(nx);
-    out.push(ny);
-    return out;
-}
-
-var vertices;
-$("#gdpscale").on('change', function() {
-  	xIsLog = ( this.value == "log");
-    recomputeScale();
-});
-    
-$("#lifescale").on('change', function() {
-  	yIsLog = ( this.value == "log");
-    recomputeScale();
-});
-
-// Transparency slider
-var transparencySlider = $("#transparencySlider");
-transparencySlider.slider({
-    min: 0, max: 1, step: 0.1, value: 1
-});
-
-// Transparency slider
-var circleSlider = $("#circleSlider");
-circleSlider.slider({
-    min: 0.01, max: 0.3, step: 0.01, value: 0.05
-});
-    
-// Year slider and the play button.
-    var yearSlider = $("#yearSlider");
-    var playButton = $("#playButton");
-    yearSlider.slider({
-        min: 1800,
-        max: 2015
-    });
-    var isPlaying = false;
-    var lastYearUpdate;
-    var yearUpdateInterval = 100.0;
-    function startPlay() {
-        isPlaying = true;
-        lastYearUpdate = performance.now();
-        yearSlider.slider("disable");
-    }
-    function stopPlay() {
-        isPlaying = false;
-        yearSlider.slider("enable");
-    }
-    playButton.click(function () {
-        if (isPlaying) {
-            stopPlay();
-            document.getElementById("playButton").innerHTML = "Play!"
-        } else {
-            startPlay();
-            document.getElementById("playButton").innerHTML = "Stop!"
-        }
-    });
-    function updateUi() {
-        var year = yearSlider.slider("value");
-        if (isPlaying) {
-            if (year == 2015) {
-                stopPlay();
-                document.getElementById("playButton").innerHTML = "Play!"
-            } else {
-                var currentTime = performance.now();
-                if (currentTime - lastYearUpdate > yearUpdateInterval) {
-                    lastYearUpdate = currentTime;
-                    yearSlider.slider("value", year + 1);
-                }
-            }
-        }
-        year = yearSlider.slider("value");
-        $("#currentYear").html("<h1>" + year + "</h1>");
-        window.requestAnimationFrame(updateUi);
-    }
-    window.requestAnimationFrame(updateUi);
+var isPlaying = false;
+var lastYearUpdate;
     
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
@@ -305,7 +155,6 @@ if (!gl) {
 }
 var vertex_buffer = gl.createBuffer();
 
-recomputeScale();
 /*=================== Shaders ====================*/
 // Vertex shader source code
 var vertCode = $("#vertexShader").html();
@@ -361,18 +210,6 @@ function drawCircle(centerx, centery, r, color, zindex) {
 }
 // Render Loop
 function renderLoop() {
-    var transparency = 1- $("#transparencySlider").slider("value");
-    var colors = {};
-    var red = [1, 0, 0, 1];
-    var green = [0, 1, 0, 1];
-    var blue = [0, 0, 1, 1];
-    var yellow = [255, 255, 0, 1];
-    for (i in getCountryList()) {
-        if (getCountryList()[i].region == "Europe") {colors[getCountryList()[i].name] = red}
-        if (getCountryList()[i].region == "America") {colors[getCountryList()[i].name] = green}
-        if (getCountryList()[i].region == "Asia") {colors[getCountryList()[i].name] = blue}
-        if (getCountryList()[i].region == "Africa") {colors[getCountryList()[i].name] = yellow}
-    }
 
     gl.useProgram(shaderProgram);
     /*======= Associating shaders to buffer objects ======*/
@@ -393,7 +230,7 @@ function renderLoop() {
     gl.viewport(0,0,canvas.width,canvas.height);
     // Draw the triangle
     gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,1]);
-    gl.drawArrays(gl.LINES, 0, vertices.length/3);
+    // gl.drawArrays(gl.LINES, 0, vertices.length/3);
     // POINTS, LINE_STRIP, LINE_LOOP, LINES,
     // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
