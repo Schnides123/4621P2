@@ -76,10 +76,6 @@ $("#webglCanvas").mousedown(function (event) {
     var yc = 2*y / clientRect.height - 1;
 });
     
-
-var vertices;
-
-    
 var canvas = document.getElementById("webglCanvas")
 var gl = canvas.getContext("experimental-webgl");
 if (!gl) {
@@ -168,6 +164,7 @@ function renderLoop() {
     // gl.drawArrays(gl.LINES, 0, vertices.length/3);
     // POINTS, LINE_STRIP, LINE_LOOP, LINES,
     // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
+    drawCircle(0, 0, 0.1, [1, 0, 0, 1], 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     window.requestAnimationFrame(renderLoop);
 }
