@@ -27,6 +27,7 @@ var buff = [];
         navigator.getUserMedia({audio:true}, 
           function(stream) {
               start_microphone(stream);
+              loop(gl, program, vertexBuffer, indexBuffer);
           },
           function(e) {
             alert('Error capturing audio.');
@@ -86,7 +87,7 @@ var buff = [];
 
         // draw the spectrogram
         if (microphone_stream.playbackState == microphone_stream.PLAYING_STATE) {
-          Array.prototype.push.apply(buff, array);
+          buff = array;
         }
       };
     }
@@ -121,7 +122,7 @@ void main() {
 
 precision highp float;
 varying vec2 geom_texCoord;
-uniform int fftData[MAX_BUFFER];
+uniform sampler2D texture;
 
 // The coordinates of the image plane
 float x;
@@ -130,7 +131,7 @@ float y;
 void main() {
     x = geom_texCoord[0];
     y = geom_texCoord[1];
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = texture2D(texture, vec2(-y/2. + 0.5, 0.5));
 }
 </script>
     
@@ -172,14 +173,36 @@ void main() {
             return program;
         }
     }    
-    
+
     function loop(gl, program, vertexBuffer, indexBuffer) {
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.useProgram(program);
-        
-        // Set the uniform variables.
-        gl.uniform1iv(gl.getUniformLocation(program, "fftData"), buff);
+
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        var arr = [];
+        for (var i = 0; i < 128; i++) {
+          arr.push(buff[i]);
+          arr.push(0);
+          arr.push(0);
+          arr.push(255);
+        }
+        console.log(arr.length);
+        var oneDTextureTexels = new Uint8Array(arr);
+
+        var width = 128;
+        var height = 1;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, oneDTextureTexels);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        var textureLocation = gl.getUniformLocation(program, "texture");
+        gl.uniform1i(textureLocation, 0);
+
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         var vertPositionLocation = gl.getAttribLocation(program, "vert_position");
         gl.enableVertexAttribArray(vertPositionLocation);
@@ -222,7 +245,6 @@ void main() {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
-    loop(gl, program, vertexBuffer, indexBuffer);      
 </script>
 </body>
 </html>
