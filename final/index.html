@@ -127,7 +127,7 @@ var buff = [];
 </head>
 <body>
 <div class="container">
-    <h1>CS 4621 PPA2 <span class="subtitle">Music Visualization</span></h1>
+    <h1>CS 4621 Final <span class="subtitle">Music Visualization</span></h1>
 
 <div class = "jumbotron" id="canvasdiv">
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
@@ -223,8 +223,8 @@ void main() {
         var arr = [];
         for (var i = 0; i < 128; i++) {
           arr.push(buff[i]);
-          arr.push(0);
-          arr.push(0);
+          arr.push(buff[i]);
+          arr.push(buff[i]);
           arr.push(255);
         }
         console.log(arr.length);
