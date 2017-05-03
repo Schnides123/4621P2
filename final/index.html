@@ -64,7 +64,6 @@ navigator.getUserMedia (
     console.log('The following gUM error occured: ' + err);
   }
 );
-
 	</script>
 </head>
 <body>
@@ -226,6 +225,11 @@ void main() {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
+    function onVolumeChange() {
+        gainNode.gain.value = this.value;
+    }
+    document.getElementById("volume").addEventListener("change", onVolumeChange);
+    gainNode.gain.value = 0;
 </script>
     <h2>Team Members</h2>
 
