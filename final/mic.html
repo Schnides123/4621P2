@@ -48,7 +48,18 @@ var buff = [];
       gain_node = audioContext.createGain();
       gain_node.connect( audioContext.destination );
 
-      microphone_stream = audioContext.createMediaStreamSource(stream);
+      var audio = new Audio(),
+          source,
+          // `stream_url` you'd get from 
+          // requesting http://api.soundcloud.com/tracks/6981096.json
+          url = 'http://api.soundcloud.com/tracks/6981096/stream' +
+                '?client_id=YOUR_CLIENT_ID';
+
+      audio.src = url;
+      source = context.createMediaElementSource(audio);
+      source.connect(context.destination);
+      source.mediaElement.play();
+      // microphone_stream = audioContext.createMediaStreamSource(stream);
       microphone_stream.connect(gain_node); 
 
       script_processor_node = audioContext.createScriptProcessor(BUFF_SIZE, 1, 1);
