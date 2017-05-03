@@ -81,6 +81,11 @@ navigator.getUserMedia (
 <div id="controls" class="row">
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="0"/>
+    <h4>Visualization Mode</h4>
+    <select id="mode">
+        <option value="frequency">Frequency</option>
+        <option value="time">Waveform</option>
+    </select>
 </div>
     <script id="vertexShader" type="x-shader/x-vertex">
 
@@ -162,7 +167,11 @@ void main() {
         var tex = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, tex);
 
-        analyser.getByteFrequencyData(buff);
+        if ($("#mode")[0].value == "time") {
+            analyser.getByteTimeDomainData(buff);
+        } else {
+            analyser.getByteFrequencyData(buff);
+        }
         var arr = [];
         for (var i = 0; i < 128; i++) {
           arr.push(buff[i]);
