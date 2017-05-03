@@ -148,3 +148,13 @@ code {
     background: none;
     border: none;
 }
+
+#webglCanvas {
+	margin: 1em auto;
+}
+
+#canvasdiv{
+	background-color: black;
+	text-align: center;
+}
+

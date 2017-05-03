@@ -29,12 +29,107 @@
         padding: 5px;
     }
     </style>
+	
+	<script type="text/javascript">
+
+var buff = [];
+
+  var webaudio_tooling_obj = function () {
+
+    var audioContext = new AudioContext();
+
+    var BUFF_SIZE = 16384;
+
+    var audioInput = null,
+        microphone_stream = null,
+        gain_node = null,
+        script_processor_node = null,
+        script_processor_fft_node = null,
+        analyserNode = null;
+
+    if (!navigator.getUserMedia)
+            navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
+                          navigator.mozGetUserMedia || navigator.msGetUserMedia;
+
+    if (navigator.getUserMedia){
+
+        navigator.getUserMedia({audio:true}, 
+          function(stream) {
+              start_microphone(stream);
+              loop(gl, program, vertexBuffer, indexBuffer);
+          },
+          function(e) {
+            alert('Error capturing audio.');
+          }
+        );
+
+    } else { alert('getUserMedia not supported in this browser.'); }
+
+    function process_microphone_buffer(event) {
+
+        var i, N, inp, microphone_output_buffer;
+
+        microphone_output_buffer = event.inputBuffer.getChannelData(0);
+    }
+
+    function start_microphone(stream){
+
+      gain_node = audioContext.createGain();
+      gain_node.connect( audioContext.destination );
+
+      microphone_stream = audioContext.createMediaStreamSource(stream);
+      microphone_stream.connect(gain_node); 
+
+      script_processor_node = audioContext.createScriptProcessor(BUFF_SIZE, 1, 1);
+      script_processor_node.onaudioprocess = process_microphone_buffer;
+
+      microphone_stream.connect(script_processor_node);
+
+      // --- enable volume control for output speakers
+      gain_node.gain.value = 0;
+      document.getElementById('volume').addEventListener('change', function() {
+
+          var curr_volume = this.value;
+          gain_node.gain.value = curr_volume;
+
+          console.log("curr_volume ", curr_volume);
+      });
+
+      // --- setup FFT
+
+      script_processor_fft_node = audioContext.createScriptProcessor(2048, 1, 1);
+      script_processor_fft_node.connect(gain_node);
+
+      analyserNode = audioContext.createAnalyser();
+      analyserNode.smoothingTimeConstant = 0;
+      analyserNode.fftSize = 256;
+
+      microphone_stream.connect(analyserNode);
+
+      analyserNode.connect(script_processor_fft_node);
+
+      script_processor_fft_node.onaudioprocess = function() {
+
+        // get the average for the first channel
+        var array = new Uint8Array(analyserNode.frequencyBinCount);
+        analyserNode.getByteFrequencyData(array);
+
+        // draw the spectrogram
+        if (microphone_stream.playbackState == microphone_stream.PLAYING_STATE) {
+          buff = array;
+        }
+      };
+    }
+
+  }(); //  webaudio_tooling_obj = function()
+
+	</script>
 </head>
 <body>
 <div class="container">
     <h1>CS 4621 PPA2 <span class="subtitle">Music Visualization</span></h1>
-<div id="controls" class="col-md-4">
-<div class = "col-md-8">
+
+<div class = "jumbotron" id="canvasdiv">
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
 </div>
 
@@ -42,135 +137,153 @@
 <script src="js/jquery-3.1.1.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
 <!-- Data -->
-<script id="vertexShader" type="x-shader/x-vertex">
-attribute vec3 coordinates;
-void main(void) {
- gl_Position = vec4(coordinates, 1.0);
+<div id="controls" class="row">
+    <h4>Volume</h4>
+    <input id="volume" type="range" min="0" max="1" step="0.1" value="0"/>
+</div>
+    <script id="vertexShader" type="x-shader/x-vertex">
+
+attribute vec3 vert_position;
+attribute vec2 vert_texCoord;
+varying vec2 geom_texCoord;
+
+void main() {
+    gl_Position = vec4(vert_position, 1.0);
+    // vert_texCoord is given in the range ([0,1],[0,1])
+    geom_texCoord = 2.0*vert_texCoord - vec2(1.0,1.0);
 }
 </script>
+
 <script id="fragmentShader" type="x-shader/x-fragment">
+#define MAX_BUFFER 1024
+#define PI 3.14159
+
 precision highp float;
-uniform vec4 color;
-void main(void) {
- gl_FragColor = vec4(color);
+varying vec2 geom_texCoord;
+uniform sampler2D texture;
+
+// The coordinates of the image plane
+float x;
+float y;
+
+void main() {
+    x = geom_texCoord[0];
+    y = geom_texCoord[1];
+    gl_FragColor = texture2D(texture, vec2(-y/2. + 0.5, 0.5));
 }
 </script>
-
-<script type="text/javascript">
-$("#webglCanvas").mousemove(function (event) {
-    var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
-    var x = event.clientX - clientRect.left;
-    var y = clientRect.height - (event.clientY - clientRect.top);
-    // Convert to -1 to 1
-    var xc = 2*x / clientRect.width - 1;
-    var yc = 2*y / clientRect.height - 1;
-});
-$("#webglCanvas").mouseleave(function (event) {
-});
-$("#webglCanvas").mousedown(function (event) {
-    var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
-    var x = event.clientX - clientRect.left;
-    var y = clientRect.height - (event.clientY - clientRect.top);
-    // Convert to -1 to 1
-    var xc = 2*x / clientRect.width - 1;
-    var yc = 2*y / clientRect.height - 1;
-});
     
-var canvas = document.getElementById("webglCanvas")
-var gl = canvas.getContext("experimental-webgl");
-if (!gl) {
-    gl = canvas.getContent("webgl");
-    if (!gl) {
-        alert("Cannot get WebGL context!");
-    }
-}
-var vertex_buffer = gl.createBuffer();
-
-/*=================== Shaders ====================*/
-// Vertex shader source code
-var vertCode = $("#vertexShader").html();
-// Create a vertex shader object
-var vertShader = gl.createShader(gl.VERTEX_SHADER);
-// Attach vertex shader source code
-gl.shaderSource(vertShader, vertCode);
-// Compile the vertex shader
-gl.compileShader(vertShader);
-// Fragment shader source code
-var fragCode = $("#fragmentShader").html();
-// Create fragment shader object
-var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-// Attach fragment shader source code
-gl.shaderSource(fragShader, fragCode);
-// Compile the fragmentt shader
-gl.compileShader(fragShader);
-// Create a shader program object to store
-// the combined shader program
-var shaderProgram = gl.createProgram();
-// Attach a vertex shader
-gl.attachShader(shaderProgram, vertShader);
-// Attach a fragment shader
-gl.attachShader(shaderProgram, fragShader);
-// Link both the programs
-gl.linkProgram(shaderProgram);
-// Use the combined shader program object
-var compilationLog = gl.getShaderInfoLog(vertShader) + gl.getShaderInfoLog(fragShader);
-console.log('Shader compiler log: ' + compilationLog);
-
-
-function drawCircle(centerx, centery, r, color, zindex) {
-    var vertices = [centerx, centery, zindex];
-    var numVertices = 10;
-    for (var i = 0; i <= numVertices; i++) {
-        // This vertex, the next vertex, and the center each time
-        vertices.push(r*Math.cos(2*i*Math.PI/numVertices) + centerx);
-        vertices.push(r*Math.sin(2*i*Math.PI/numVertices) + centery);
-        vertices.push(zindex);
+<script>   
+    function createShader(gl, shaderScriptId) {
+        var shaderScript = document.getElementById(shaderScriptId);
+        var shaderSource = shaderScript.text;
+        var shaderType = null;
+        if (shaderScript.type == "x-shader/x-vertex") {
+            shaderType = gl.VERTEX_SHADER;
+        } else if (shaderScript.type == "x-shader/x-fragment") {
+            shaderType = gl.FRAGMENT_SHADER;
+        } else {
+            throw new Error("Invalid shader type: " + shaderScript.type)
+        }
+        var shader = gl.createShader(shaderType);
+        gl.shaderSource(shader, shaderSource);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            var infoLog = gl.getShaderInfoLog(shader);
+            gl.deleteShader(shader);
+            throw new Error("An error occurred compiling the shader: " + infoLog);
+        } else {
+            return shader;
+        }
     }
     
-    var buff2 = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    // Get the attribute location
-    var coord = gl.getAttribLocation(shaderProgram, "coordinates");
-    // Point an attribute to the currently bound VBO
-    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
-    // Enable the attribute
-    gl.enableVertexAttribArray(coord);
-    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), color);
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length/3);
-}
-// Render Loop
-function renderLoop() {
+    function createGlslProgram(gl, vertexShaderId, fragmentShaderId) {
+        var program = gl.createProgram();
+        gl.attachShader(program, createShader(gl, vertexShaderId));
+        gl.attachShader(program, createShader(gl, fragmentShaderId));
+        gl.linkProgram(program);
+        gl.validateProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            var infoLog = gl.getProgramInfoLog(program);
+            gl.deleteProgram(program);
+            throw new Error("An error occurred linking the program: " + infoLog);
+        } else {
+            return program;
+        }
+    }    
 
-    gl.useProgram(shaderProgram);
-    /*======= Associating shaders to buffer objects ======*/
-    // Bind vertex buffer objectf
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-    // Get the attribute location
-    var coord = gl.getAttribLocation(shaderProgram, "coordinates");
-    // Point an attribute to the currently bound VBO
-    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
-    // Enable the attribute
-    gl.enableVertexAttribArray(coord);
-    /*============ Drawing the triangle =============*/
-    // Enable the depth test
-    gl.enable(gl.DEPTH_TEST);
-    // Clear the color and depth buffer
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    // Set the view port
-    gl.viewport(0,0,canvas.width,canvas.height);
-    // Draw the triangle
-    gl.uniform4fv(gl.getUniformLocation(shaderProgram,"color"), [0,0,0,1]);
-    // gl.drawArrays(gl.LINES, 0, vertices.length/3);
-    // POINTS, LINE_STRIP, LINE_LOOP, LINES,
-    // TRIANGLE_STRIP,TRIANGLE_FAN, TRIANGLES
-    drawCircle(0, 0, 0.1, [1, 0, 0, 1], 0);
+    function loop(gl, program, vertexBuffer, indexBuffer) {
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.useProgram(program);
+
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        var arr = [];
+        for (var i = 0; i < 128; i++) {
+          arr.push(buff[i]);
+          arr.push(0);
+          arr.push(0);
+          arr.push(255);
+        }
+        console.log(arr.length);
+        var oneDTextureTexels = new Uint8Array(arr);
+
+        var width = 128;
+        var height = 1;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, oneDTextureTexels);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        var textureLocation = gl.getUniformLocation(program, "texture");
+        gl.uniform1i(textureLocation, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        var vertPositionLocation = gl.getAttribLocation(program, "vert_position");
+        gl.enableVertexAttribArray(vertPositionLocation);
+        gl.vertexAttribPointer(vertPositionLocation, 3, gl.FLOAT, false, 4*5, 0);
+        var vertTextureLocation = gl.getAttribLocation(program, "vert_texCoord");
+        gl.enableVertexAttribArray(vertTextureLocation);
+        gl.vertexAttribPointer(vertTextureLocation, 2, gl.FLOAT, false, 4*5, 4*3);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        gl.useProgram(null);
+        window.requestAnimationFrame(() => { loop(gl, program, vertexBuffer, indexBuffer); });
+    }
+    
+    let canvas = document.querySelector('#webglCanvas');
+    let gl = canvas.getContext("webgl");
+    let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader');
+    let vertexData = [
+        -1.0, -1.0, 0.0,  // Lower left
+        0.0,  0.0,
+        1.0, -1.0, 0.0,  // Lower right
+        1.0,  0.0,
+        1.0,  1.0, 0.0,  // Top right
+        1.0,  1.0,
+        -1.0,  1.0, 0.0,  // Top left
+        0.0,  1.0
+    ];
+    let vertexArray = new Float32Array(vertexData);
+    let vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    window.requestAnimationFrame(renderLoop);
-}
-renderLoop();
-</script>
 
+    // Two triangles: one for each half of the quad
+    var indexData = [0, 1, 2, 0, 2, 3];
+    var indexArray = new Uint16Array(indexData);
+    var indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+</script>
     <h2>Team Members</h2>
 
     <ul>
