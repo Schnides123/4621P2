@@ -31,6 +31,8 @@
     </style>
 	
 	<script type="text/javascript">
+		var floorTexture;
+		var time = new Date();
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // define audio context
 
 var analyser = audioCtx.createAnalyser();
@@ -96,7 +98,7 @@ varying vec2 geom_texCoord;
 void main() {
     gl_Position = vec4(vert_position, 1.0);
     // vert_texCoord is given in the range ([0,1],[0,1])
-    geom_texCoord = 2.0*vert_texCoord - vec2(1.0,1.0);
+    geom_texCoord = vert_texCoord;
 }
 </script>
 
@@ -107,6 +109,7 @@ void main() {
 precision highp float;
 varying vec2 geom_texCoord;
 uniform sampler2D texture;
+uniform sampler2D background;
 
 // The coordinates of the image plane
 float x;
@@ -115,7 +118,10 @@ float y;
 void main() {
     x = geom_texCoord[0];
     y = geom_texCoord[1];
-    gl_FragColor = texture2D(texture, vec2(-y/2. + 0.5, 0.5));
+	vec4 fint = texture2D(texture, vec2(x, 0.5));
+	if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
+   	else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
+					*texture2D(background, vec2(x,y));
 }
 </script>
     
@@ -159,6 +165,30 @@ void main() {
     }    
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
+		
+		if(time.getUTCSeconds() == 0){
+			floorImage = new Image();
+			floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
+			// Step 1: Create the texture object.
+			floorTexture = gl.createTexture();
+			// Step 2: Bind the texture object to the "target" TEXTURE_2D
+			gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+			// Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
+			//         so that we don't have to deal with flipping the y-coordinate.
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+			// Step 4: Download the image data to the GPU.
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+			// Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
+			gl.generateMipmap(gl.TEXTURE_2D);
+			// Step 6: Clean up.  Tell WebGL that we are done with the target.
+			gl.bindTexture(gl.TEXTURE_2D, null);
+			animate(0);
+			
+			
+			
+		}
+		
+	
 
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -191,6 +221,11 @@ void main() {
         gl.bindTexture(gl.TEXTURE_2D, tex);
         var textureLocation = gl.getUniformLocation(program, "texture");
         gl.uniform1i(textureLocation, 0);
+		
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+		textureLocation = gl.getUniformLocation(program, "background");
+		gl.uniform1i(textureLocation, 1);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         var vertPositionLocation = gl.getAttribLocation(program, "vert_position");
@@ -239,6 +274,25 @@ void main() {
     }
     document.getElementById("volume").addEventListener("change", onVolumeChange);
     gainNode.gain.value = 0;
+	
+	floorImage = new Image();
+	floorImage.onload = function() {
+		// Step 1: Create the texture object.
+		floorTexture = gl.createTexture();
+		// Step 2: Bind the texture object to the "target" TEXTURE_2D
+		gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+		// Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
+		//         so that we don't have to deal with flipping the y-coordinate.
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+		// Step 4: Download the image data to the GPU.
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+		// Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
+		gl.generateMipmap(gl.TEXTURE_2D);
+		// Step 6: Clean up.  Tell WebGL that we are done with the target.
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		animate(0);
+	};
+	floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
 </script>
     <h2>Team Members</h2>
 
