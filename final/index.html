@@ -32,6 +32,7 @@
 	
 	<script type="text/javascript">
 		var floorTexture;
+        var webcamTexture;
 		var time = new Date();
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // define audio context
 
@@ -39,24 +40,37 @@ var analyser = audioCtx.createAnalyser();
 var distortion = audioCtx.createWaveShaper();
 var gainNode = audioCtx.createGain();
 var biquadFilter = audioCtx.createBiquadFilter();
-analyser.fftSize = 256;
+analyser.fftSize = 512;
 var bufferLength = analyser.frequencyBinCount; // half the FFT value
-var buff = new Uint8Array(bufferLength); 
+var buff = new Uint8Array(bufferLength);
+var imageData;
 
 navigator.getUserMedia (
   // constraints - only audio needed for this app
   {
-    audio: true
+    audio: true,
+    video: true
   },
 
   // Success callback
   function(stream) {
-    source = audioCtx.createMediaStreamSource(stream);
+    video = document.getElementById("v");
+    video.srcObject = stream;
+    video.play();
+
+    audio = new Audio();
+    audio.src = "./song.mp3";
+    //source = audioCtx.createMediaStreamSource(stream);
+    source = audioCtx.createMediaElementSource(audio);
     source.connect(analyser);
     analyser.connect(distortion);
     distortion.connect(biquadFilter);
+
     biquadFilter.connect(gainNode);
     gainNode.connect(audioCtx.destination); // connecting the different audio graph nodes together
+
+    // Play the song
+    source.mediaElement.play();
 
     loop(gl, program, vertexBuffer, indexBuffer);
   },
@@ -82,11 +96,23 @@ navigator.getUserMedia (
 <!-- Data -->
 <div id="controls" class="row">
     <h4>Volume</h4>
-    <input id="volume" type="range" min="0" max="1" step="0.1" value="0"/>
+    <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
+    <h4>Biquad Filter</h4>
+    <input id="biquad" type="range" min="0" max="22050" step="50" value="500"/>
     <h4>Visualization Mode</h4>
     <select id="mode">
         <option value="frequency">Frequency</option>
         <option value="time">Waveform</option>
+    </select>
+    <h4>Data Input Mode</h4>
+    <select id="inputMode">
+        <option value="file">File</option>
+        <option value="microphone">Microphone</option>
+    </select>
+    <h4>Texture Mode</h4>
+    <select id="textureMode">
+        <option value="images">Images</option>
+        <option value="webcam">Webcam</option>
     </select>
 </div>
     <script id="vertexShader" type="x-shader/x-vertex">
@@ -165,28 +191,19 @@ void main() {
     }    
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
-		
 		if(time.getUTCSeconds() == 0){
 			floorImage = new Image();
 			floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
-			// Step 1: Create the texture object.
 			floorTexture = gl.createTexture();
-			// Step 2: Bind the texture object to the "target" TEXTURE_2D
 			gl.bindTexture(gl.TEXTURE_2D, floorTexture);
-			// Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
-			//         so that we don't have to deal with flipping the y-coordinate.
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			// Step 4: Download the image data to the GPU.
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
-			// Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
 			gl.generateMipmap(gl.TEXTURE_2D);
-			// Step 6: Clean up.  Tell WebGL that we are done with the target.
-			gl.bindTexture(gl.TEXTURE_2D, null);
-			animate(0);
-			
-			
+			gl.bindTexture(gl.TEXTURE_2D, null);			
 			
 		}
+        biquadFilter.frequency.value=document.getElementById("biquad").value;
+
 		
 	
 
@@ -197,13 +214,22 @@ void main() {
         var tex = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, tex);
 
+        var backgroundTexture;
+
         if ($("#mode")[0].value == "time") {
             analyser.getByteTimeDomainData(buff);
-        } else {
+        } else if ($("#mode")[0].value == "frequency") {
             analyser.getByteFrequencyData(buff);
         }
+        if ($("#textureMode")[0].value == "webcam") {
+            backgroundTexture = webcamTexture;
+        } else if($("#textureMode")[0].value == "images") {
+            backgroundTexture = floorTexture;
+        }
+
+
         var arr = [];
-        for (var i = 0; i < 128; i++) {
+        for (var i = 0; i < analyser.frequencyBinCount; i++) {
           arr.push(buff[i]);
           arr.push(buff[i]);
           arr.push(buff[i]);
@@ -211,7 +237,7 @@ void main() {
         }
         var oneDTextureTexels = new Uint8Array(arr);
 
-        var width = 128;
+        var width = analyser.frequencyBinCount;
         var height = 1;
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, oneDTextureTexels);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -223,7 +249,7 @@ void main() {
         gl.uniform1i(textureLocation, 0);
 		
 		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+		gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
 		textureLocation = gl.getUniformLocation(program, "background");
 		gl.uniform1i(textureLocation, 1);
 
@@ -273,7 +299,7 @@ void main() {
         gainNode.gain.value = this.value;
     }
     document.getElementById("volume").addEventListener("change", onVolumeChange);
-    gainNode.gain.value = 0;
+    gainNode.gain.value = 1.0;
 	
 	floorImage = new Image();
 	floorImage.onload = function() {
@@ -290,9 +316,10 @@ void main() {
 		gl.generateMipmap(gl.TEXTURE_2D);
 		// Step 6: Clean up.  Tell WebGL that we are done with the target.
 		gl.bindTexture(gl.TEXTURE_2D, null);
-		animate(0);
 	};
 	floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
+
+
 </script>
     <h2>Team Members</h2>
 
@@ -301,6 +328,26 @@ void main() {
         <li>Josh Beinhacker (jpb345), Aishwarya Singh (as2539), Alex Schneider (aas339), Spencer Weiss (sbw66)</li>
     </ul>
 </div>
-
+<video id='v' muted style="position:absolute;visibility:hidden;top:0;left:0;"></video>
+<canvas id='c' width="512" height="512" style="position:absolute;visibility:hidden;top:0;left:0;"></canvas>
+<script>
+v.addEventListener('play', function() {
+   con = c.getContext('2d');
+   // Ratio is actually 1.33:1, but store as power-of-two for webgl and fix in shader
+   w = 512; h = 512;
+   setInterval(function() {
+      if (v.paused || v.ended) return;
+      con.fillRect(0, 0, w, h);
+      con.drawImage(v, 0, 0, w, h);
+      imageData = con.getImageData(0, 0, w, h);
+      webcamTexture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, webcamTexture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageData);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+   }, 33);
+}, false);
+</script>
 </body>
 </html>

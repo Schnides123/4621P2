@@ -20,6 +20,49 @@
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+        <script type="text/javascript">
+        var floorTexture;
+        var time = new Date();
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // define audio context
+
+var analyser = audioCtx.createAnalyser();
+var distortion = audioCtx.createWaveShaper();
+var gainNode = audioCtx.createGain();
+var biquadFilter = audioCtx.createBiquadFilter();
+analyser.fftSize = 512;
+var bufferLength = analyser.frequencyBinCount; // half the FFT value
+var buff = new Uint8Array(bufferLength); 
+
+navigator.getUserMedia (
+  // constraints - only audio needed for this app
+  {
+    audio: true
+  },
+
+  // Success callback
+  function(stream) {
+    audio = new Audio();
+    audio.src = "./song.mp3";
+    //source = audioCtx.createMediaStreamSource(stream);
+    source = audioCtx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(distortion);
+    distortion.connect(biquadFilter);
+    biquadFilter.connect(gainNode);
+    gainNode.connect(audioCtx.destination); // connecting the different audio graph nodes together
+
+    // Play the song
+    source.mediaElement.play();
+
+    loop(gl, program, vertexBuffer, indexBuffer);
+  },
+
+  // Error callback
+  function(err) {
+    console.log('The following gUM error occured: ' + err);
+  }
+);
+    </script>
 </head>
 <body>
 <div class="container">
