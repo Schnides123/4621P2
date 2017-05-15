@@ -41,6 +41,23 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // defi
 
 var analyser = audioCtx.createAnalyser();
 var distortion = audioCtx.createWaveShaper();
+var convolver = audioCtx.createConvolver();
+function makeDistortionCurve(amount) {
+  var k = typeof amount === 'number' ? amount : 50,
+    n_samples = 44100,
+    curve = new Float32Array(n_samples),
+    deg = Math.PI / 180,
+    i = 0,
+    x;
+  for ( ; i < n_samples; ++i ) {
+    x = i * 2 / n_samples - 1;
+    curve[i] = ( 3 + k ) * x * 20 * deg / ( Math.PI + k * Math.abs(x) );
+  }
+  return curve;
+};
+
+//distortion.curve = makeDistortionCurve(400);
+//distortion.oversample = '4x';
 var gainNode = audioCtx.createGain();
 var biquadFilter = audioCtx.createBiquadFilter();
 analyser.fftSize = 512;
@@ -49,6 +66,9 @@ var buff = new Uint8Array(bufferLength);
 var imageData;
 var micSource;
 var fileSource;
+var bufferSource;
+var audio;
+var synthDelay;
 
 navigator.getUserMedia (
   // constraints - only audio needed for this app
@@ -67,16 +87,17 @@ navigator.getUserMedia (
     audio.src = "./song.mp3";
     micSource = audioCtx.createMediaStreamSource(stream);
     fileSource = audioCtx.createMediaElementSource(audio);
+    bufferSource = audioCtx.createBufferSource();
     source = fileSource;
     source.connect(analyser);
     analyser.connect(distortion);
     distortion.connect(biquadFilter);
-
     biquadFilter.connect(gainNode);
+    //synthDelay = audioCtx.createDelay(5.0);
     gainNode.connect(audioCtx.destination); // connecting the different audio graph nodes together
 
     // Play the song
-    source.mediaElement.play();
+    fileSource.mediaElement.play();
 
     loop(gl, program, vertexBuffer, indexBuffer);
   },
@@ -98,7 +119,9 @@ navigator.getUserMedia (
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
     <h4>Biquad Filter</h4>
-    <input id="biquad" type="range" min="0" max="22050" step="50" value="500"/>
+    <input id="biquad" type="range" min="0" max="22050" step="50" value="22050"/>
+    <h4>Distortion</h4>
+    <input id="distortion" type="range" min="0" max="1000" step="50" value="0"/>
     <h4>Visualization Mode</h4>
     <select id="mode">
         <option value="frequency">Frequency</option>
@@ -109,6 +132,9 @@ navigator.getUserMedia (
         <option value="file">File</option>
         <option value="microphone">Microphone</option>
     </select>
+    <h4>Load File</h4>
+    <input type="file" id="fileLoc" style="color:white"/>
+    <input type="button" id="loadFile" value="Load file" />
     <h4>Texture Mode</h4>
     <select id="textureMode">
         <option value="images">Images</option>
@@ -355,15 +381,46 @@ v.addEventListener('play', function() {
    }, 33);
 }, false);
 $("#inputMode").change(function() {
-    console.log("I am here");
     micSource.disconnect();
     fileSource.disconnect();
     if (document.getElementById("inputMode").value == "microphone") {
-analyser
+        source = micSource;
         micSource.connect(analyser);
     } else {
+        source = fileSource;
         fileSource.connect(analyser);
     }
+});
+$("#distortion").change(function() {
+    var value = parseInt(document.getElementById("distortion").value);
+    distortion.curve = makeDistortionCurve(value);
+    distortion.oversample = '4x';
+    if (value == 0) {
+        distortion.oversample = 'none';
+    }
+});
+var fr;
+$("#loadFile").click(function() {
+    file = document.getElementById("fileLoc").files[0];
+    fr = new FileReader();
+    fr.readAsArrayBuffer(file);
+    fr.onload = function () {
+        micSource.disconnect();
+        fileSource.disconnect();
+        bufferSource.disconnect();
+
+        var audioData = fr.result;
+
+        audioCtx.decodeAudioData(audioData, function(buffer) {
+            bufferSource = audioCtx.createBufferSource();
+            bufferSource.buffer = buffer;
+
+            bufferSource.connect(analyser);
+
+            bufferSource.start();
+          },
+        function(e){ console.log("Error with decoding audio data" + e.err); });
+    };
 });
 </script>
 </body>
