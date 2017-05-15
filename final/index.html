@@ -28,12 +28,15 @@
         min-width: 200px;
         padding: 5px;
     }
+    h4 {
+        color: white;
+    }
     </style>
 	
 	<script type="text/javascript">
-		var floorTexture;
-        var webcamTexture;
-		var time = new Date();
+var floorTexture;
+var webcamTexture;
+var time = new Date();
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // define audio context
 
 var analyser = audioCtx.createAnalyser();
@@ -44,6 +47,8 @@ analyser.fftSize = 512;
 var bufferLength = analyser.frequencyBinCount; // half the FFT value
 var buff = new Uint8Array(bufferLength);
 var imageData;
+var micSource;
+var fileSource;
 
 navigator.getUserMedia (
   // constraints - only audio needed for this app
@@ -60,8 +65,9 @@ navigator.getUserMedia (
 
     audio = new Audio();
     audio.src = "./song.mp3";
-    //source = audioCtx.createMediaStreamSource(stream);
-    source = audioCtx.createMediaElementSource(audio);
+    micSource = audioCtx.createMediaStreamSource(stream);
+    fileSource = audioCtx.createMediaElementSource(audio);
+    source = fileSource;
     source.connect(analyser);
     analyser.connect(distortion);
     distortion.connect(biquadFilter);
@@ -88,13 +94,7 @@ navigator.getUserMedia (
 
 <div class = "jumbotron" id="canvasdiv">
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
-</div>
-
-<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-<script src="js/jquery-3.1.1.min.js"></script>
-<script src="js/jquery-ui.min.js"></script>
-<!-- Data -->
-<div id="controls" class="row">
+<div id="controls" style="float:right;">
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
     <h4>Biquad Filter</h4>
@@ -115,6 +115,12 @@ navigator.getUserMedia (
         <option value="webcam">Webcam</option>
     </select>
 </div>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="js/jquery-3.1.1.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<!-- Data -->
     <script id="vertexShader" type="x-shader/x-vertex">
 
 attribute vec3 vert_position;
@@ -348,6 +354,17 @@ v.addEventListener('play', function() {
       gl.bindTexture(gl.TEXTURE_2D, null);
    }, 33);
 }, false);
+$("#inputMode").change(function() {
+    console.log("I am here");
+    micSource.disconnect();
+    fileSource.disconnect();
+    if (document.getElementById("inputMode").value == "microphone") {
+analyser
+        micSource.connect(analyser);
+    } else {
+        fileSource.connect(analyser);
+    }
+});
 </script>
 </body>
 </html>
