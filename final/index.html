@@ -32,8 +32,8 @@
         color: white;
     }
     </style>
-	
-	<script type="text/javascript">
+
+    <script type="text/javascript">
 var floorTexture;
 var webcamTexture;
 var time = new Date();
@@ -126,14 +126,14 @@ navigator.getUserMedia (
     console.log('The following gUM error occured: ' + err);
   }
 );
-	</script>
+    </script>
 </head>
 <body>
 <div class="container">
     <h1>CS 4621 Final <span class="subtitle">Music Visualization</span></h1>
 
 <div class = "jumbotron" id="canvasdiv">
-<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="500" height="500"></canvas>
 <div id="controls" style="float:right;">
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
@@ -201,14 +201,14 @@ float y;
 void main() {
     x = geom_texCoord[0];
     y = geom_texCoord[1];
-	vec4 fint = texture2D(texture, vec2(x, 0.5));
-	if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
-   	else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
-					*texture2D(background, vec2(x,y));
+    vec4 fint = texture2D(texture, vec2(x, 0.5));
+    if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
+    else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
+                    *texture2D(background, vec2(x,y));
 }
 </script>
-    
-<script>   
+
+<script>
     function createShader(gl, shaderScriptId) {
         var shaderScript = document.getElementById(shaderScriptId);
         var shaderSource = shaderScript.text;
@@ -231,7 +231,7 @@ void main() {
             return shader;
         }
     }
-    
+
     function createGlslProgram(gl, vertexShaderId, fragmentShaderId) {
         var program = gl.createProgram();
         gl.attachShader(program, createShader(gl, vertexShaderId));
@@ -245,24 +245,24 @@ void main() {
         } else {
             return program;
         }
-    }    
+    }
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
-		if(time.getUTCSeconds() == 0){
-			floorImage = new Image();
-			floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
-			floorTexture = gl.createTexture();
-			gl.bindTexture(gl.TEXTURE_2D, floorTexture);
-			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
-			gl.generateMipmap(gl.TEXTURE_2D);
-			gl.bindTexture(gl.TEXTURE_2D, null);			
-			
-		}
+        if(time.getUTCSeconds() == 0){
+            floorImage = new Image();
+            floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
+            floorTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+
+        }
         biquadFilter.frequency.value=document.getElementById("biquad").value;
 
-		
-	
+
+
 
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -304,11 +304,11 @@ void main() {
         gl.bindTexture(gl.TEXTURE_2D, tex);
         var textureLocation = gl.getUniformLocation(program, "texture");
         gl.uniform1i(textureLocation, 0);
-		
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
-		textureLocation = gl.getUniformLocation(program, "background");
-		gl.uniform1i(textureLocation, 1);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
+        textureLocation = gl.getUniformLocation(program, "background");
+        gl.uniform1i(textureLocation, 1);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         var vertPositionLocation = gl.getAttribLocation(program, "vert_position");
@@ -324,7 +324,7 @@ void main() {
         gl.useProgram(null);
         window.requestAnimationFrame(() => { loop(gl, program, vertexBuffer, indexBuffer); });
     }
-    
+
     let canvas = document.querySelector('#webglCanvas');
     let gl = canvas.getContext("webgl");
     let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader');
@@ -357,24 +357,24 @@ void main() {
     }
     document.getElementById("volume").addEventListener("change", onVolumeChange);
     gainNode.gain.value = 1.0;
-	
-	floorImage = new Image();
-	floorImage.onload = function() {
-		// Step 1: Create the texture object.
-		floorTexture = gl.createTexture();
-		// Step 2: Bind the texture object to the "target" TEXTURE_2D
-		gl.bindTexture(gl.TEXTURE_2D, floorTexture);
-		// Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
-		//         so that we don't have to deal with flipping the y-coordinate.
-		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		// Step 4: Download the image data to the GPU.
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
-		// Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
-		gl.generateMipmap(gl.TEXTURE_2D);
-		// Step 6: Clean up.  Tell WebGL that we are done with the target.
-		gl.bindTexture(gl.TEXTURE_2D, null);
-	};
-	floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
+
+    floorImage = new Image();
+    floorImage.onload = function() {
+        // Step 1: Create the texture object.
+        floorTexture = gl.createTexture();
+        // Step 2: Bind the texture object to the "target" TEXTURE_2D
+        gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+        // Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
+        //         so that we don't have to deal with flipping the y-coordinate.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        // Step 4: Download the image data to the GPU.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+        // Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
+        gl.generateMipmap(gl.TEXTURE_2D);
+        // Step 6: Clean up.  Tell WebGL that we are done with the target.
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    };
+    floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
 
 
 </script>
