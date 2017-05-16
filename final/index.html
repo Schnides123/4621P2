@@ -32,7 +32,7 @@
         color: white;
     }
     </style>
-	
+
 	<script type="text/javascript">
 var floorTexture;
 var webcamTexture;
@@ -42,6 +42,17 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // defi
 var analyser = audioCtx.createAnalyser();
 var distortion = audioCtx.createWaveShaper();
 var gainNode = audioCtx.createGain();
+
+var treble = audioCtx.createBiquadFilter();
+treble.type = "highshelf";
+treble.frequency.value = 2000;
+//treble.gain.value = treble;
+
+var bass = audioCtx.createBiquadFilter();
+bass.type = "lowshelf";
+bass.frequency.value = 200;
+//bass.gain.value = bass;
+
 var biquadFilter = audioCtx.createBiquadFilter();
 analyser.fftSize = 512;
 var bufferLength = analyser.frequencyBinCount; // half the FFT value
@@ -70,9 +81,13 @@ navigator.getUserMedia (
     source = fileSource;
     source.connect(analyser);
     analyser.connect(distortion);
-    distortion.connect(biquadFilter);
+    distortion.connect(bass);
+    bass.connect(treble);
+    treble.connect(gainNode);
+    //biquadFilter.connect(gainNode);
 
-    biquadFilter.connect(gainNode);
+
+
     gainNode.connect(audioCtx.destination); // connecting the different audio graph nodes together
 
     // Play the song
@@ -95,8 +110,18 @@ navigator.getUserMedia (
 <div class = "jumbotron" id="canvasdiv">
 <canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
 <div id="controls" style="float:right;">
+    <td>
+    <button id="playButton">Play!!</button>
+    <td width="20"></td>
+    <td>
+    <button id="pauseButton">Pause!!</button>
+    <td width="20"></td>
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
+    <h4>Treble</h4>
+    <input id="treble" type="range" min="0" max="1" step="0.1" value="1.0"/>
+    <h4>Bass</h4>
+    <input id="bass" type="range" min="0" max="1" step="0.1" value="1.0"/>
     <h4>Biquad Filter</h4>
     <input id="biquad" type="range" min="0" max="22050" step="50" value="500"/>
     <h4>Visualization Mode</h4>
@@ -156,8 +181,8 @@ void main() {
 					*texture2D(background, vec2(x,y));
 }
 </script>
-    
-<script>   
+
+<script>
     function createShader(gl, shaderScriptId) {
         var shaderScript = document.getElementById(shaderScriptId);
         var shaderSource = shaderScript.text;
@@ -180,7 +205,7 @@ void main() {
             return shader;
         }
     }
-    
+
     function createGlslProgram(gl, vertexShaderId, fragmentShaderId) {
         var program = gl.createProgram();
         gl.attachShader(program, createShader(gl, vertexShaderId));
@@ -194,7 +219,7 @@ void main() {
         } else {
             return program;
         }
-    }    
+    }
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
 		if(time.getUTCSeconds() == 0){
@@ -205,13 +230,14 @@ void main() {
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
 			gl.generateMipmap(gl.TEXTURE_2D);
-			gl.bindTexture(gl.TEXTURE_2D, null);			
-			
+			gl.bindTexture(gl.TEXTURE_2D, null);
+
 		}
         biquadFilter.frequency.value=document.getElementById("biquad").value;
+        bass.frequency.value = document.getElementById("bass").value;
+        treble.frequency.value = document.getElementById("treble").value;
 
-		
-	
+
 
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -253,7 +279,7 @@ void main() {
         gl.bindTexture(gl.TEXTURE_2D, tex);
         var textureLocation = gl.getUniformLocation(program, "texture");
         gl.uniform1i(textureLocation, 0);
-		
+
 		gl.activeTexture(gl.TEXTURE1);
 		gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
 		textureLocation = gl.getUniformLocation(program, "background");
@@ -273,8 +299,10 @@ void main() {
         gl.useProgram(null);
         window.requestAnimationFrame(() => { loop(gl, program, vertexBuffer, indexBuffer); });
     }
-    
+
     let canvas = document.querySelector('#webglCanvas');
+    var play = document.querySelector('.play');
+    var stop = document.querySelector('.stop');
     let gl = canvas.getContext("webgl");
     let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader');
     let vertexData = [
@@ -301,12 +329,45 @@ void main() {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
+    var playButton = $("#playButton");
+
+    var isPlaying = false;
+
+    function startPlay() {
+        isPlaying = true;
+    }
+
+    function stopPlay() {
+        isPlaying = false;
+    }
+
+    playButton.click(function () {
+        if (isPlaying) {
+            stopPlay();
+        } else {
+            startPlay();
+        }
+    });
+
     function onVolumeChange() {
         gainNode.gain.value = this.value;
     }
+
     document.getElementById("volume").addEventListener("change", onVolumeChange);
     gainNode.gain.value = 1.0;
-	
+
+    function onBassChange() {
+        bass.gain.value = this.value;
+    }
+    document.getElementById("bass").addEventListener("change", onBassChange);
+    bass.gain.value = 1.0;
+
+    function onTrebleChange() {
+        treble.gain.value = this.value;
+    }
+    document.getElementById("treble").addEventListener("change", onTrebleChange);
+    treble.gain.value = 1.0;
+
 	floorImage = new Image();
 	floorImage.onload = function() {
 		// Step 1: Create the texture object.
