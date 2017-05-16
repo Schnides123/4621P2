@@ -33,7 +33,7 @@
     }
     </style>
 
-	<script type="text/javascript">
+    <script type="text/javascript">
 var floorTexture;
 var webcamTexture;
 var time = new Date();
@@ -41,25 +41,42 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // defi
 
 var analyser = audioCtx.createAnalyser();
 var distortion = audioCtx.createWaveShaper();
-var gainNode = audioCtx.createGain();
+var convolver = audioCtx.createConvolver();
+function makeDistortionCurve(amount) {
+  var k = typeof amount === 'number' ? amount : 50,
+    n_samples = 44100,
+    curve = new Float32Array(n_samples),
+    deg = Math.PI / 180,
+    i = 0,
+    x;
+  for ( ; i < n_samples; ++i ) {
+    x = i * 2 / n_samples - 1;
+    curve[i] = ( 3 + k ) * x * 20 * deg / ( Math.PI + k * Math.abs(x) );
+  }
+  return curve;
+};
 
+//distortion.curve = makeDistortionCurve(400);
+//distortion.oversample = '4x';
+var gainNode = audioCtx.createGain();
+var biquadFilter = audioCtx.createBiquadFilter();
 var treble = audioCtx.createBiquadFilter();
 treble.type = "highshelf";
-treble.frequency.value = 2000;
-//treble.gain.value = treble;
-
+treble.frequency.value = 2048;
+treble.gain.value = 0;
 var bass = audioCtx.createBiquadFilter();
 bass.type = "lowshelf";
-bass.frequency.value = 200;
-//bass.gain.value = bass;
-
-var biquadFilter = audioCtx.createBiquadFilter();
+bass.frequency.vallue = 256;
+bass.gain.value = 0;
 analyser.fftSize = 512;
 var bufferLength = analyser.frequencyBinCount; // half the FFT value
 var buff = new Uint8Array(bufferLength);
 var imageData;
 var micSource;
 var fileSource;
+var bufferSource;
+var audio;
+var synthDelay;
 
 navigator.getUserMedia (
   // constraints - only audio needed for this app
@@ -78,20 +95,19 @@ navigator.getUserMedia (
     audio.src = "./song.mp3";
     micSource = audioCtx.createMediaStreamSource(stream);
     fileSource = audioCtx.createMediaElementSource(audio);
+    bufferSource = audioCtx.createBufferSource();
     source = fileSource;
-    source.connect(analyser);
-    analyser.connect(distortion);
-    distortion.connect(bass);
+    source.connect(distortion);
+    distortion.connect(biquadFilter);
+    biquadFilter.connect(bass);
     bass.connect(treble);
-    treble.connect(gainNode);
-    //biquadFilter.connect(gainNode);
-
-
-
+    treble.connect(analyser);
+    analyser.connect(gainNode);
+    //synthDelay = audioCtx.createDelay(5.0);
     gainNode.connect(audioCtx.destination); // connecting the different audio graph nodes together
 
     // Play the song
-    source.mediaElement.play();
+    fileSource.mediaElement.play();
 
     loop(gl, program, vertexBuffer, indexBuffer);
   },
@@ -101,29 +117,25 @@ navigator.getUserMedia (
     console.log('The following gUM error occured: ' + err);
   }
 );
-	</script>
+    </script>
 </head>
 <body>
 <div class="container">
     <h1>CS 4621 Final <span class="subtitle">Music Visualization</span></h1>
 
 <div class = "jumbotron" id="canvasdiv">
-<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="500" height="500"></canvas>
 <div id="controls" style="float:right;">
-    <td>
-    <button id="playButton">Play!!</button>
-    <td width="20"></td>
-    <td>
-    <button id="pauseButton">Pause!!</button>
-    <td width="20"></td>
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
-    <h4>Treble</h4>
-    <input id="treble" type="range" min="0" max="1" step="0.1" value="1.0"/>
+    <h4>Low Pass Filter</h4>
+    <input id="biquad" type="range" min="0" max="22050" step="50" value="22050"/>
+    <h4>Distortion</h4>
+    <input id="distortion" type="range" min="0" max="1000" step="50" value="0"/>
     <h4>Bass</h4>
-    <input id="bass" type="range" min="0" max="1" step="0.1" value="1.0"/>
-    <h4>Biquad Filter</h4>
-    <input id="biquad" type="range" min="0" max="22050" step="50" value="500"/>
+    <input id="bass" type="range" min="-20" max="20" step="1" value="0"/>
+    <h4>Treble</h4>
+    <input id="treble" type="range" min="-20" max="20" step="1" value="0"/>
     <h4>Visualization Mode</h4>
     <select id="mode">
         <option value="frequency">Frequency</option>
@@ -134,6 +146,9 @@ navigator.getUserMedia (
         <option value="file">File</option>
         <option value="microphone">Microphone</option>
     </select>
+    <h4>Load File</h4>
+    <input type="file" id="fileLoc" style="color:white"/>
+    <input type="button" id="loadFile" value="Load file" />
     <h4>Texture Mode</h4>
     <select id="textureMode">
         <option value="images">Images</option>
@@ -175,10 +190,10 @@ float y;
 void main() {
     x = geom_texCoord[0];
     y = geom_texCoord[1];
-	vec4 fint = texture2D(texture, vec2(x, 0.5));
-	if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
-   	else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
-					*texture2D(background, vec2(x,y));
+    vec4 fint = texture2D(texture, vec2(x, 0.5));
+    if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
+    else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
+                    *texture2D(background, vec2(x,y));
 }
 </script>
 
@@ -222,20 +237,19 @@ void main() {
     }
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
-		if(time.getUTCSeconds() == 0){
-			floorImage = new Image();
-			floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
-			floorTexture = gl.createTexture();
-			gl.bindTexture(gl.TEXTURE_2D, floorTexture);
-			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
-			gl.generateMipmap(gl.TEXTURE_2D);
-			gl.bindTexture(gl.TEXTURE_2D, null);
+        if(time.getUTCSeconds() == 0){
+            floorImage = new Image();
+            floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
+            floorTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.bindTexture(gl.TEXTURE_2D, null);
 
-		}
+        }
         biquadFilter.frequency.value=document.getElementById("biquad").value;
-        bass.frequency.value = document.getElementById("bass").value;
-        treble.frequency.value = document.getElementById("treble").value;
+
 
 
 
@@ -280,10 +294,10 @@ void main() {
         var textureLocation = gl.getUniformLocation(program, "texture");
         gl.uniform1i(textureLocation, 0);
 
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
-		textureLocation = gl.getUniformLocation(program, "background");
-		gl.uniform1i(textureLocation, 1);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
+        textureLocation = gl.getUniformLocation(program, "background");
+        gl.uniform1i(textureLocation, 1);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         var vertPositionLocation = gl.getAttribLocation(program, "vert_position");
@@ -301,8 +315,6 @@ void main() {
     }
 
     let canvas = document.querySelector('#webglCanvas');
-    var play = document.querySelector('.play');
-    var stop = document.querySelector('.stop');
     let gl = canvas.getContext("webgl");
     let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader');
     let vertexData = [
@@ -329,62 +341,29 @@ void main() {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
-    var playButton = $("#playButton");
-
-    var isPlaying = false;
-
-    function startPlay() {
-        isPlaying = true;
-    }
-
-    function stopPlay() {
-        isPlaying = false;
-    }
-
-    playButton.click(function () {
-        if (isPlaying) {
-            stopPlay();
-        } else {
-            startPlay();
-        }
-    });
-
     function onVolumeChange() {
         gainNode.gain.value = this.value;
     }
-
     document.getElementById("volume").addEventListener("change", onVolumeChange);
     gainNode.gain.value = 1.0;
 
-    function onBassChange() {
-        bass.gain.value = this.value;
-    }
-    document.getElementById("bass").addEventListener("change", onBassChange);
-    bass.gain.value = 1.0;
-
-    function onTrebleChange() {
-        treble.gain.value = this.value;
-    }
-    document.getElementById("treble").addEventListener("change", onTrebleChange);
-    treble.gain.value = 1.0;
-
-	floorImage = new Image();
-	floorImage.onload = function() {
-		// Step 1: Create the texture object.
-		floorTexture = gl.createTexture();
-		// Step 2: Bind the texture object to the "target" TEXTURE_2D
-		gl.bindTexture(gl.TEXTURE_2D, floorTexture);
-		// Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
-		//         so that we don't have to deal with flipping the y-coordinate.
-		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		// Step 4: Download the image data to the GPU.
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
-		// Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
-		gl.generateMipmap(gl.TEXTURE_2D);
-		// Step 6: Clean up.  Tell WebGL that we are done with the target.
-		gl.bindTexture(gl.TEXTURE_2D, null);
-	};
-	floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
+    floorImage = new Image();
+    floorImage.onload = function() {
+        // Step 1: Create the texture object.
+        floorTexture = gl.createTexture();
+        // Step 2: Bind the texture object to the "target" TEXTURE_2D
+        gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+        // Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
+        //         so that we don't have to deal with flipping the y-coordinate.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        // Step 4: Download the image data to the GPU.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+        // Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
+        gl.generateMipmap(gl.TEXTURE_2D);
+        // Step 6: Clean up.  Tell WebGL that we are done with the target.
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    };
+    floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
 
 
 </script>
@@ -416,14 +395,68 @@ v.addEventListener('play', function() {
    }, 33);
 }, false);
 $("#inputMode").change(function() {
-    console.log("I am here");
     micSource.disconnect();
     fileSource.disconnect();
     if (document.getElementById("inputMode").value == "microphone") {
-analyser
+        source = micSource;
         micSource.connect(analyser);
     } else {
+        source = fileSource;
         fileSource.connect(analyser);
+    }
+});
+$("#distortion").change(function() {
+    var value = parseInt(document.getElementById("distortion").value);
+    distortion.curve = makeDistortionCurve(value);
+    distortion.oversample = '4x';
+    if (value == 0) {
+        distortion.oversample = 'none';
+        distortion.curve = null;
+    }
+});
+$("#bass").change(function() {
+    var value = parseInt(document.getElementById("bass").value);
+    bass.gain.value = value;
+});
+$("#treble").change(function() {
+    var value = parseInt(document.getElementById("treble").value);
+    treble.gain.value = value;
+});
+$("#loadFile").click(function() {
+    file = document.getElementById("fileLoc").files[0];
+    fr = new FileReader();
+    fr.readAsArrayBuffer(file);
+    fr.onload = function () {
+        micSource.disconnect();
+        fileSource.disconnect();
+        bufferSource.disconnect();
+
+        var audioData = fr.result;
+
+        audioCtx.decodeAudioData(audioData, function(buffer) {
+            bufferSource = audioCtx.createBufferSource();
+            bufferSource.buffer = buffer;
+
+            bufferSource.connect(analyser);
+
+            bufferSource.start();
+          },
+        function(e){ console.log("Error with decoding audio data" + e.err); });
+    };
+});
+$("#webglCanvas").mousemove(function (event) {
+    var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
+    var x = event.clientX - clientRect.left;
+    var y = clientRect.height - (event.clientY - clientRect.top);
+    // Convert to 0 to 1
+    var xc = x / clientRect.width;
+    var yc = y / clientRect.height;
+});
+$("#webglCanvas").mousedown(function (event) {
+    if (audioCtx.state == "running") {
+        audioCtx.suspend();
+    } else {
+        audioCtx.resume();
     }
 });
 </script>
