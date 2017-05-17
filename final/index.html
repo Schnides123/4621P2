@@ -77,6 +77,11 @@ var fileSource;
 var bufferSource;
 var audio;
 var synthDelay;
+var splitter = audioCtx.createChannelSplitter(2);
+var merger = audioCtx.createChannelMerger(2);
+var leftGain = audioCtx.createGain();
+var rightGain = audioCtx.createGain();
+
 
 navigator.getUserMedia (
   // constraints - only audio needed for this app
@@ -103,8 +108,12 @@ navigator.getUserMedia (
     bass.connect(treble);
     treble.connect(analyser);
     analyser.connect(gainNode);
-    //synthDelay = audioCtx.createDelay(5.0);
-    gainNode.connect(audioCtx.destination); // connecting the different audio graph nodes together
+    gainNode.connect(splitter);
+    splitter.connect(leftGain, 0);
+    splitter.connect(rightGain, 1);
+    leftGain.connect(merger, 0, 0);
+    rightGain.connect(merger, 0, 1);
+    merger.connect(audioCtx.destination); // connecting the different audio graph nodes together
 
     // Play the song
     fileSource.mediaElement.play();
@@ -124,8 +133,10 @@ navigator.getUserMedia (
     <h1>CS 4621 Final <span class="subtitle">Music Visualization</span></h1>
 
 <div class = "jumbotron" id="canvasdiv">
-<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="500" height="500"></canvas>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="550" height="550"></canvas>
 <div id="controls" style="float:right;">
+    <button id="playButton">Play!/Pause!</button>
+    <td width="20"></td>
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
     <h4>Low Pass Filter</h4>
@@ -136,6 +147,8 @@ navigator.getUserMedia (
     <input id="bass" type="range" min="-20" max="20" step="1" value="0"/>
     <h4>Treble</h4>
     <input id="treble" type="range" min="-20" max="20" step="1" value="0"/>
+    <h4>Balance</h4>
+    <input id="balance" type="range" min="0" max="1" step="0.01" value="0.5"/>
     <h4>Visualization Mode</h4>
     <select id="mode">
         <option value="frequency">Frequency</option>
@@ -399,10 +412,10 @@ $("#inputMode").change(function() {
     fileSource.disconnect();
     if (document.getElementById("inputMode").value == "microphone") {
         source = micSource;
-        micSource.connect(analyser);
+        micSource.connect(distortion);
     } else {
         source = fileSource;
-        fileSource.connect(analyser);
+        fileSource.connect(distortion);
     }
 });
 $("#distortion").change(function() {
@@ -437,7 +450,7 @@ $("#loadFile").click(function() {
             bufferSource = audioCtx.createBufferSource();
             bufferSource.buffer = buffer;
 
-            bufferSource.connect(analyser);
+            bufferSource.connect(distortion);
 
             bufferSource.start();
           },
@@ -451,14 +464,20 @@ $("#webglCanvas").mousemove(function (event) {
     // Convert to 0 to 1
     var xc = x / clientRect.width;
     var yc = y / clientRect.height;
+    var frequencyBin = xc*analyser.frequencyBinCount;
 });
-$("#webglCanvas").mousedown(function (event) {
+
+$("#playButton").mousedown(function (event) {
     if (audioCtx.state == "running") {
         audioCtx.suspend();
+        document.getElementById("playButton"),innerHTML = "Play!"
     } else {
         audioCtx.resume();
+        document.getElementById("playButton"),innerHTML = "Pause!"
     }
 });
+
+
 </script>
 </body>
 </html>
