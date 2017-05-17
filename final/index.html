@@ -187,7 +187,7 @@ void main() {
 }
 </script>
 
-<script id="fragmentShader2" type="x-shader/x-fragment">
+<script id="fragmentShader" type="x-shader/x-fragment">
 #define MAX_BUFFER 1024
 #define PI 3.14159
 
@@ -373,7 +373,6 @@ void main() {
 		var T = gl.getUniformLocation(program, "T");
 		var d = new Date();
 		var n = d.getTime();
-		console.log(n);
         gl.uniform1f(T, n);
 		
 		gl.activeTexture(gl.TEXTURE1);
