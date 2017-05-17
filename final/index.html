@@ -149,6 +149,8 @@ navigator.getUserMedia (
     <input id="treble" type="range" min="-20" max="20" step="1" value="0"/>
     <h4>Balance</h4>
     <input id="balance" type="range" min="0" max="1" step="0.01" value="0.5"/>
+    <h4>Radial Frequency (ms)</h4>
+    <input id="rfreq" type="range" min="500" max="20000" step="100" value="2000"/>
     <h4>Visualization Mode</h4>
     <select id="mode">
         <option value="frequency">Frequency</option>
@@ -387,8 +389,9 @@ var n;
             var T = gl.getUniformLocation(program, "T");
             var d = new Date();
             var seconds = d.getSeconds();
-            var ms = (seconds*1000 + d.getMilliseconds()) % 5000;
-            n = ms * 1000 / 5000;
+            var freq = parseInt(document.getElementById("rfreq").value);
+            var ms = (seconds*1000 + d.getMilliseconds()) % freq;
+            n = ms * 1000 / freq;
         }
         gl.uniform1f(T, n);
 		
@@ -499,9 +502,6 @@ v.addEventListener('play', function() {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageData);
       gl.generateMipmap(gl.TEXTURE_2D);
       gl.bindTexture(gl.TEXTURE_2D, null);
-      if (inside) {
-        $("#webglCanvas").mousemove();
-      }
    }, 33);
 }, false);
 $("#inputMode").change(function() {
@@ -612,8 +612,11 @@ $("#playButton").mousedown(function (event) {
         document.getElementById("playButton"),innerHTML = "Pause!"
     }
 });
-
-
+setInterval(function() {
+    if (inside) {
+        $("#webglCanvas").mousemove();
+    }
+}, 500);
 </script>
 </body>
 </html>
