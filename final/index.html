@@ -134,7 +134,7 @@ void main() {
 }
 </script>
 
-<script id="fragmentShader" type="x-shader/x-fragment">
+<script id="fragmentShader2" type="x-shader/x-fragment">
 #define MAX_BUFFER 1024
 #define PI 3.14159
 
@@ -142,6 +142,7 @@ precision highp float;
 varying vec2 geom_texCoord;
 uniform sampler2D texture;
 uniform sampler2D background;
+uniform float t;
 
 // The coordinates of the image plane
 float x;
@@ -154,6 +155,44 @@ void main() {
 	if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
    	else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
 					*texture2D(background, vec2(x,y));
+}
+</script>
+	
+<script id="fragmentShader" type="x-shader/x-fragment">
+#define MAX_BUFFER 1024
+#define PI 3.14159
+
+precision highp float;
+varying vec2 geom_texCoord;
+uniform sampler2D texture;
+uniform sampler2D background;
+//uniform float aspectratio;
+uniform float T;
+
+// The coordinates of the image plane
+float x;
+float y;
+
+vec2 rotate(vec2 v, float theta){
+	return mat2(cos(theta), -sin(theta), sin(theta), cos(theta)) * v;
+}
+
+void main() {
+    x = geom_texCoord[0];
+    y = geom_texCoord[1];
+    float theta = 0.;
+	vec2 center = vec2(0.5, 0.5);
+	vec2 startingdir = normalize(vec2(cos(mod((T/1000.0),2.0*PI)), sin(mod((T/1000.0),2.0*PI))));
+	float uvdist = length(vec2(x, y)-center);
+	vec2 uvdir = normalize(vec2(x, y)-center);
+	float rtheta = acos(dot(startingdir, uvdir));
+	if(acos(dot(startingdir, rotate(uvdir, PI/4.))) < 0.0) rtheta = rtheta + PI;
+	vec4 fint = texture2D(texture, vec2(rtheta/(2.0*PI), 0.5));
+	
+	gl_FragColor = vec4(vec3(abs(dot(startingdir, uvdir))),1.0);
+	//if(uvdist*2. <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
+   	//else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
+	//				*texture2D(background, vec2(x,y));
 }
 </script>
     
@@ -197,17 +236,6 @@ void main() {
     }    
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
-		if(time.getUTCSeconds() == 0){
-			floorImage = new Image();
-			floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
-			floorTexture = gl.createTexture();
-			gl.bindTexture(gl.TEXTURE_2D, floorTexture);
-			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
-			gl.generateMipmap(gl.TEXTURE_2D);
-			gl.bindTexture(gl.TEXTURE_2D, null);			
-			
-		}
         biquadFilter.frequency.value=document.getElementById("biquad").value;
 
 		
@@ -253,6 +281,12 @@ void main() {
         gl.bindTexture(gl.TEXTURE_2D, tex);
         var textureLocation = gl.getUniformLocation(program, "texture");
         gl.uniform1i(textureLocation, 0);
+		
+		var T = gl.getUniformLocation(program, "T");
+		var d = new Date();
+		var n = d.getTime();
+		console.log(n);
+        gl.uniform1f(T, n);
 		
 		gl.activeTexture(gl.TEXTURE1);
 		gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
