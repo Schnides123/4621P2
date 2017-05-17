@@ -487,6 +487,12 @@ var n;
 
 
 </script>
+    <h2>Soundcloud Widget</h2>
+<h3>To use, select microphone mode and turn the volume slider to zero.</h3>
+<h4 style="color:black;">(Soundcloud would not give us an API key, so Soundcloud microphone input is all we have. &#128546;)</h4>
+Soundcloud URL: <input type="text" value="https://soundcloud.com/lineschannel/weekends-1" id="url" style="width: 600px" />
+<input type="button" value="Go!" />
+<iframe class="iframe" width="100%" height="465" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lineschannel/weekends-1&amp;auto_play=false&amp;buying=true&amp;liking=true&amp;download=true&amp;sharing=true&amp;show_artwork=true&amp;show_comments=true&amp;show_playcount=true&amp;show_user=true&amp;hide_related=false&amp;visual=true&amp;start_track=0&amp;callback=true" id="scloud"></iframe>
     <h2>Team Members</h2>
 
     <ul>
@@ -620,6 +626,10 @@ $("#playButton").mousedown(function (event) {
         audioCtx.resume();
         document.getElementById("playButton"),innerHTML = "Pause!"
     }
+});
+$("#url").change(function() {
+    var surl = document.getElementById("url").value;
+    document.getElementById("scloud").src = "https://w.soundcloud.com/player/?url=" + surl + "&amp;auto_play=false&amp;buying=true&amp;liking=true&amp;download=true&amp;sharing=true&amp;show_artwork=true&amp;show_comments=true&amp;show_playcount=true&amp;show_user=true&amp;hide_related=false&amp;visual=true&amp;start_track=0&amp;callback=true";
 });
 setInterval(function() {
     if (inside) {
