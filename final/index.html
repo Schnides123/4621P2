@@ -524,6 +524,9 @@ $("#webglCanvas").mousedown(function (event) {
 $("#webglCanvas").mouseup(function (event) {
     drawingCurve = false;
 });
+$("#webglCanvas").mouseleave(function (event) {
+    drawingCurve = false;
+});
 $("#playButton").mousedown(function (event) {
     if (audioCtx.state == "running") {
         audioCtx.suspend();
