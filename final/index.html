@@ -133,8 +133,10 @@ navigator.getUserMedia (
     <h1>CS 4621 Final <span class="subtitle">Music Visualization</span></h1>
 
 <div class = "jumbotron" id="canvasdiv">
-<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="500" height="500"></canvas>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="550" height="550"></canvas>
 <div id="controls" style="float:right;">
+    <button id="playButton">Play!/Pause!</button>
+    <td width="20"></td>
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
     <h4>Low Pass Filter</h4>
@@ -522,6 +524,17 @@ $("#webglCanvas").mousedown(function (event) {
 $("#webglCanvas").mouseup(function (event) {
     drawingCurve = false;
 });
+$("#playButton").mousedown(function (event) {
+    if (audioCtx.state == "running") {
+        audioCtx.suspend();
+        document.getElementById("playButton"),innerHTML = "Play!"
+    } else {
+        audioCtx.resume();
+        document.getElementById("playButton"),innerHTML = "Pause!"
+    }
+});
+
+
 </script>
 </body>
 </html>
