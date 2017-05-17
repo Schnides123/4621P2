@@ -129,11 +129,10 @@ navigator.getUserMedia (
     </script>
 </head>
 <body>
-<div class="container">
     <h1>CS 4621 Final <span class="subtitle">Music Visualization</span></h1>
 
 <div class = "jumbotron" id="canvasdiv">
-<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="550" height="550"></canvas>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="700" height="700"></canvas>
 <div id="controls" style="float:right;">
     <button id="playButton">Play!/Pause!</button>
     <td width="20"></td>
@@ -483,7 +482,6 @@ var n;
         <li>Please list your team members with NetID in this unordered list.</li>
         <li>Josh Beinhacker (jpb345), Aishwarya Singh (as2539), Alex Schneider (aas339), Spencer Weiss (sbw66)</li>
     </ul>
-</div>
 <video id='v' muted style="position:absolute;visibility:hidden;top:0;left:0;"></video>
 <canvas id='c' width="512" height="512" style="position:absolute;visibility:hidden;top:0;left:0;"></canvas>
 <script>
@@ -617,6 +615,18 @@ setInterval(function() {
         $("#webglCanvas").mousemove();
     }
 }, 500);
+function fullscreen(){
+   var el = document.getElementById('webglCanvas');
+
+   if(el.webkitRequestFullScreen) {
+       el.webkitRequestFullScreen();
+   }
+  else {
+     el.mozRequestFullScreen();
+  }
+}
+ 
+document.getElementById("webglCanvas").addEventListener("dblclick",fullscreen);
 </script>
 </body>
 </html>
