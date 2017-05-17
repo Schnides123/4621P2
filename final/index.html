@@ -203,6 +203,7 @@ uniform sampler2D texture;
 uniform sampler2D background;
 uniform float t;
 uniform int isCurve; // 1 if we are drawing a curve atop the canvas
+uniform float aspectratio;
 
 // The coordinates of the image plane
 float x;
@@ -211,11 +212,14 @@ float y;
 void main() {
     x = geom_texCoord[0];
     y = geom_texCoord[1];
+    float shift = (1.0 - abs(1.0/aspectratio))/2.0;
+
+    float backx = x/aspectratio - shift;
     vec4 fint = texture2D(texture, vec2(x, 0.5));
     if(isCurve == 1) gl_FragColor = vec4(1,0,0,1);
-    else if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
+    else if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(backx,y));
     else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
-                    *texture2D(background, vec2(x,y));
+                    *texture2D(background, vec2(backx,y));
 }
 </script>
 
@@ -241,7 +245,7 @@ precision highp float;
 varying vec2 geom_texCoord;
 uniform sampler2D texture;
 uniform sampler2D background;
-//uniform float aspectratio;
+uniform float aspectratio;
 uniform float T;
 
 // The coordinates of the image plane
@@ -357,10 +361,14 @@ var n;
             $("#mode")[0].value == "rfrequency") {
             analyser.getByteFrequencyData(buff);
         }
+        var aspectratio;
         if ($("#textureMode")[0].value == "webcam") {
             backgroundTexture = webcamTexture;
+            aspectratio = 
+            -1.33;
         } else if($("#textureMode")[0].value == "images") {
             backgroundTexture = floorTexture;
+            aspectratio = 1;
         }
 
 
@@ -383,6 +391,9 @@ var n;
         gl.bindTexture(gl.TEXTURE_2D, tex);
         var textureLocation = gl.getUniformLocation(program, "texture");
         gl.uniform1i(textureLocation, 0);
+
+        var aspectloc = gl.getUniformLocation(program, "aspectratio");
+        gl.uniform1f(aspectloc, aspectratio);
 		
         if (audioCtx.state == "running") {
             var T = gl.getUniformLocation(program, "T");
