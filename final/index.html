@@ -525,6 +525,8 @@ $("#inputMode").change(function() {
     if (document.getElementById("inputMode").value == "microphone") {
         source = micSource;
         micSource.connect(distortion);
+		document.getElementById("volume").value = "0";
+		gainNode.gain.value = 0;
     } else {
         source = fileSource;
         fileSource.connect(distortion);
