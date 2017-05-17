@@ -118,7 +118,7 @@ navigator.getUserMedia (
     // Play the song
     fileSource.mediaElement.play();
 
-    loop(gl, program, vertexBuffer, indexBuffer);
+    loop(gl, lprogram, vertexBuffer, indexBuffer);
   },
 
   // Error callback
@@ -153,6 +153,8 @@ navigator.getUserMedia (
     <select id="mode">
         <option value="frequency">Frequency</option>
         <option value="time">Waveform</option>
+        <option value="rfrequency">Radial Frequency</option>
+        <option value="rtime">Radial Waveform</option>
     </select>
     <h4>Data Input Mode</h4>
     <select id="inputMode">
@@ -167,6 +169,9 @@ navigator.getUserMedia (
         <option value="images">Images</option>
         <option value="webcam">Webcam</option>
     </select>
+</div>
+<div style="clear:both;color:white">
+<h2>Frequency: <span id="frequency">N/A</span> Hz, Amplitude: <span id="amplitude">N/A</span></h2>
 </div>
 </div>
 
@@ -325,12 +330,19 @@ void main() {
         gl.uniform4fv(gl.getUniformLocation(program2,"color"), color);
         gl.drawArrays(gl.LINE_STRIP, 0, vertices.length/3);
     }
+var n;
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
 		
         biquadFilter.frequency.value=document.getElementById("biquad").value;
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
+        var program;
+        if ($("#mode")[0].value == "rtime" || $("#mode")[0].value == "rfrequency") {
+            program = rprogram;
+        } else {
+            program = lprogram;
+        }
         gl.useProgram(program);
 
         var tex = gl.createTexture();
@@ -338,9 +350,10 @@ void main() {
 
         var backgroundTexture;
 
-        if ($("#mode")[0].value == "time") {
+        if ($("#mode")[0].value == "time" || $("#mode")[0].value == "rtime") {
             analyser.getByteTimeDomainData(buff);
-        } else if ($("#mode")[0].value == "frequency") {
+        } else if ($("#mode")[0].value == "frequency" ||
+            $("#mode")[0].value == "rfrequency") {
             analyser.getByteFrequencyData(buff);
         }
         if ($("#textureMode")[0].value == "webcam") {
@@ -370,12 +383,13 @@ void main() {
         var textureLocation = gl.getUniformLocation(program, "texture");
         gl.uniform1i(textureLocation, 0);
 		
-		var T = gl.getUniformLocation(program, "T");
-		var d = new Date();
-        var seconds = d.getSeconds();
-        var ms = (seconds*1000 + d.getMilliseconds()) % 5000;
-        var n = ms * 1000 / 5000;
-        console.log(n);
+        if (audioCtx.state == "running") {
+            var T = gl.getUniformLocation(program, "T");
+            var d = new Date();
+            var seconds = d.getSeconds();
+            var ms = (seconds*1000 + d.getMilliseconds()) % 5000;
+            n = ms * 1000 / 5000;
+        }
         gl.uniform1f(T, n);
 		
 		gl.activeTexture(gl.TEXTURE1);
@@ -407,7 +421,8 @@ void main() {
 
     let canvas = document.querySelector('#webglCanvas');
     let gl = canvas.getContext("webgl");
-    let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader3');
+    let lprogram = createGlslProgram(gl, 'vertexShader', 'fragmentShader');
+    let rprogram = createGlslProgram(gl, 'vertexShader', 'fragmentShader3');
     let program2 = createGlslProgram(gl, 'vertexShader2', 'fragmentShader2');
     let vertexData = [
         -1.0, -1.0, 0.0,  // Lower left
@@ -484,6 +499,9 @@ v.addEventListener('play', function() {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageData);
       gl.generateMipmap(gl.TEXTURE_2D);
       gl.bindTexture(gl.TEXTURE_2D, null);
+      if (inside) {
+        $("#webglCanvas").mousemove();
+      }
    }, 33);
 }, false);
 $("#inputMode").change(function() {
@@ -515,8 +533,9 @@ $("#treble").change(function() {
     treble.gain.value = value;
 });
 $("#balance").change(function() {
-    var value = parseInt(document.getElementById("balance").value);
-    balance.gain.value = value;
+    var value = parseFloat(document.getElementById("balance").value);
+    leftGain.gain.value = 1 + (0.5 - value);
+    rightGain.gain.value = 1 - (0.5 - value);   
 });
 $("#loadFile").click(function() {
     file = document.getElementById("fileLoc").files[0];
@@ -541,15 +560,29 @@ $("#loadFile").click(function() {
     };
 });
 var drawingCurve = false;
+var inside = false;
 var curve = [];
+var prevx;
+var prevy;
 $("#webglCanvas").mousemove(function (event) {
     var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
     var x = event.clientX - clientRect.left;
     var y = clientRect.height - (event.clientY - clientRect.top);
+    if (isNaN(x)) {
+        x = prevx;
+        y = prevy;
+    } else {
+        prevx = x;
+        prevy = y;
+    }
     // Convert to -1 to 1
     var xc = 2*x / clientRect.width - 1;
     var yc = 2*y / clientRect.height - 1;
-    var frequencyBin = xc*analyser.frequencyBinCount;
+    var frequencyBin = Math.floor((xc + 1.0)*0.5*analyser.frequencyBinCount);
+    var frequency = Math.round(audioCtx.sampleRate*frequencyBin/(2*analyser.frequencyBinCount));
+    var amplitude = buff[frequencyBin];
+    document.getElementById("frequency").innerHTML = frequency;
+    document.getElementById("amplitude").innerHTML = amplitude/256;
     if (drawingCurve) {
         curve.push([xc, yc]);
     }
@@ -562,7 +595,13 @@ $("#webglCanvas").mouseup(function (event) {
     drawingCurve = false;
 });
 $("#webglCanvas").mouseleave(function (event) {
+    document.getElementById("frequency").innerHTML = "N/A";
+    document.getElementById("amplitude").innerHTML = "N/A";
     drawingCurve = false;
+    inside = false;
+});
+$("#webglCanvas").mouseenter(function(event) {
+    inside = true;
 });
 $("#playButton").mousedown(function (event) {
     if (audioCtx.state == "running") {
