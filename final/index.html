@@ -32,8 +32,8 @@
         color: white;
     }
     </style>
-	
-	<script type="text/javascript">
+
+    <script type="text/javascript">
 var floorTexture;
 var webcamTexture;
 var time = new Date();
@@ -41,14 +41,47 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // defi
 
 var analyser = audioCtx.createAnalyser();
 var distortion = audioCtx.createWaveShaper();
+var convolver = audioCtx.createConvolver();
+function makeDistortionCurve(amount) {
+  var k = typeof amount === 'number' ? amount : 50,
+    n_samples = 44100,
+    curve = new Float32Array(n_samples),
+    deg = Math.PI / 180,
+    i = 0,
+    x;
+  for ( ; i < n_samples; ++i ) {
+    x = i * 2 / n_samples - 1;
+    curve[i] = ( 3 + k ) * x * 20 * deg / ( Math.PI + k * Math.abs(x) );
+  }
+  return curve;
+};
+
+//distortion.curve = makeDistortionCurve(400);
+//distortion.oversample = '4x';
 var gainNode = audioCtx.createGain();
 var biquadFilter = audioCtx.createBiquadFilter();
+var treble = audioCtx.createBiquadFilter();
+treble.type = "highshelf";
+treble.frequency.value = 2048;
+treble.gain.value = 0;
+var bass = audioCtx.createBiquadFilter();
+bass.type = "lowshelf";
+bass.frequency.vallue = 256;
+bass.gain.value = 0;
 analyser.fftSize = 512;
 var bufferLength = analyser.frequencyBinCount; // half the FFT value
 var buff = new Uint8Array(bufferLength);
 var imageData;
 var micSource;
 var fileSource;
+var bufferSource;
+var audio;
+var synthDelay;
+var splitter = audioCtx.createChannelSplitter(2);
+var merger = audioCtx.createChannelMerger(2);
+var leftGain = audioCtx.createGain();
+var rightGain = audioCtx.createGain();
+
 
 navigator.getUserMedia (
   // constraints - only audio needed for this app
@@ -67,16 +100,23 @@ navigator.getUserMedia (
     audio.src = "./song.mp3";
     micSource = audioCtx.createMediaStreamSource(stream);
     fileSource = audioCtx.createMediaElementSource(audio);
+    bufferSource = audioCtx.createBufferSource();
     source = fileSource;
-    source.connect(analyser);
-    analyser.connect(distortion);
+    source.connect(distortion);
     distortion.connect(biquadFilter);
-
-    biquadFilter.connect(gainNode);
-    gainNode.connect(audioCtx.destination); // connecting the different audio graph nodes together
+    biquadFilter.connect(bass);
+    bass.connect(treble);
+    treble.connect(analyser);
+    analyser.connect(gainNode);
+    gainNode.connect(splitter);
+    splitter.connect(leftGain, 0);
+    splitter.connect(rightGain, 1);
+    leftGain.connect(merger, 0, 0);
+    rightGain.connect(merger, 0, 1);
+    merger.connect(audioCtx.destination); // connecting the different audio graph nodes together
 
     // Play the song
-    source.mediaElement.play();
+    fileSource.mediaElement.play();
 
     loop(gl, program, vertexBuffer, indexBuffer);
   },
@@ -86,19 +126,29 @@ navigator.getUserMedia (
     console.log('The following gUM error occured: ' + err);
   }
 );
-	</script>
+    </script>
 </head>
 <body>
 <div class="container">
     <h1>CS 4621 Final <span class="subtitle">Music Visualization</span></h1>
 
 <div class = "jumbotron" id="canvasdiv">
-<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="600" height="600"></canvas>
+<canvas id="webglCanvas" style="border: none; background-color: lightgray;" width="550" height="550"></canvas>
 <div id="controls" style="float:right;">
+    <button id="playButton">Play!/Pause!</button>
+    <td width="20"></td>
     <h4>Volume</h4>
     <input id="volume" type="range" min="0" max="1" step="0.1" value="1.0"/>
-    <h4>Biquad Filter</h4>
-    <input id="biquad" type="range" min="0" max="22050" step="50" value="500"/>
+    <h4>Low Pass Filter</h4>
+    <input id="biquad" type="range" min="0" max="22050" step="50" value="22050"/>
+    <h4>Distortion</h4>
+    <input id="distortion" type="range" min="0" max="1000" step="50" value="0"/>
+    <h4>Bass</h4>
+    <input id="bass" type="range" min="-20" max="20" step="1" value="0"/>
+    <h4>Treble</h4>
+    <input id="treble" type="range" min="-20" max="20" step="1" value="0"/>
+    <h4>Balance</h4>
+    <input id="balance" type="range" min="0" max="1" step="0.01" value="0.5"/>
     <h4>Visualization Mode</h4>
     <select id="mode">
         <option value="frequency">Frequency</option>
@@ -109,6 +159,9 @@ navigator.getUserMedia (
         <option value="file">File</option>
         <option value="microphone">Microphone</option>
     </select>
+    <h4>Load File</h4>
+    <input type="file" id="fileLoc" style="color:white"/>
+    <input type="button" id="loadFile" value="Load file" />
     <h4>Texture Mode</h4>
     <select id="textureMode">
         <option value="images">Images</option>
@@ -143,6 +196,7 @@ varying vec2 geom_texCoord;
 uniform sampler2D texture;
 uniform sampler2D background;
 uniform float t;
+uniform int isCurve; // 1 if we are drawing a curve atop the canvas
 
 // The coordinates of the image plane
 float x;
@@ -151,14 +205,29 @@ float y;
 void main() {
     x = geom_texCoord[0];
     y = geom_texCoord[1];
-	vec4 fint = texture2D(texture, vec2(x, 0.5));
-	if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
-   	else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
-					*texture2D(background, vec2(x,y));
+    vec4 fint = texture2D(texture, vec2(x, 0.5));
+    if(isCurve == 1) gl_FragColor = vec4(1,0,0,1);
+    else if(abs(2.*(y-0.5)) <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
+    else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
+                    *texture2D(background, vec2(x,y));
+}
+</script>
+
+<script id="vertexShader2" type="x-shader/x-vertex">
+attribute vec3 coordinates;
+void main(void) {
+ gl_Position = vec4(coordinates, 1.0);
+}
+</script>
+<script id="fragmentShader2" type="x-shader/x-fragment">
+precision highp float;
+uniform vec4 color;
+void main(void) {
+ gl_FragColor = vec4(color);
 }
 </script>
 	
-<script id="fragmentShader" type="x-shader/x-fragment">
+<script id="fragmentShader3" type="x-shader/x-fragment">
 #define MAX_BUFFER 1024
 #define PI 3.14159
 
@@ -195,8 +264,7 @@ void main() {
 	//				*texture2D(background, vec2(x,y));
 }
 </script>
-    
-<script>   
+<script>
     function createShader(gl, shaderScriptId) {
         var shaderScript = document.getElementById(shaderScriptId);
         var shaderSource = shaderScript.text;
@@ -219,7 +287,7 @@ void main() {
             return shader;
         }
     }
-    
+
     function createGlslProgram(gl, vertexShaderId, fragmentShaderId) {
         var program = gl.createProgram();
         gl.attachShader(program, createShader(gl, vertexShaderId));
@@ -233,14 +301,34 @@ void main() {
         } else {
             return program;
         }
-    }    
+    }
+    function drawHighlight(color, zindex) {
+        gl.useProgram(program2);
+        var vertices = [];
+        var numVertices = curve.length;
+        for (var i = 0; i < numVertices; i++) {
+            point = curve[i];
+            // This vertex, the next vertex, and the center each time
+            vertices.push(point[0]);
+            vertices.push(point[1]);
+            vertices.push(zindex);
+        }
+        var buff2 = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buff2);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        // Get the attribute location
+        var coord = gl.getAttribLocation(program2, "coordinates");
+        // Point an attribute to the currently bound VBO
+        gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+        // Enable the attribute
+        gl.enableVertexAttribArray(coord);
+        gl.uniform4fv(gl.getUniformLocation(program2,"color"), color);
+        gl.drawArrays(gl.LINE_STRIP, 0, vertices.length/3);
+    }
 
     function loop(gl, program, vertexBuffer, indexBuffer) {
-        biquadFilter.frequency.value=document.getElementById("biquad").value;
-
 		
-	
-
+        biquadFilter.frequency.value=document.getElementById("biquad").value;
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.useProgram(program);
@@ -293,6 +381,11 @@ void main() {
 		textureLocation = gl.getUniformLocation(program, "background");
 		gl.uniform1i(textureLocation, 1);
 
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
+        textureLocation = gl.getUniformLocation(program, "background");
+        gl.uniform1i(textureLocation, 1);
+
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         var vertPositionLocation = gl.getAttribLocation(program, "vert_position");
         gl.enableVertexAttribArray(vertPositionLocation);
@@ -304,13 +397,16 @@ void main() {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+        drawHighlight([1,1,1,1], 0);
         gl.useProgram(null);
         window.requestAnimationFrame(() => { loop(gl, program, vertexBuffer, indexBuffer); });
     }
-    
+
     let canvas = document.querySelector('#webglCanvas');
     let gl = canvas.getContext("webgl");
     let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader');
+    let program2 = createGlslProgram(gl, 'vertexShader2', 'fragmentShader2');
     let vertexData = [
         -1.0, -1.0, 0.0,  // Lower left
         0.0,  0.0,
@@ -340,24 +436,24 @@ void main() {
     }
     document.getElementById("volume").addEventListener("change", onVolumeChange);
     gainNode.gain.value = 1.0;
-	
-	floorImage = new Image();
-	floorImage.onload = function() {
-		// Step 1: Create the texture object.
-		floorTexture = gl.createTexture();
-		// Step 2: Bind the texture object to the "target" TEXTURE_2D
-		gl.bindTexture(gl.TEXTURE_2D, floorTexture);
-		// Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
-		//         so that we don't have to deal with flipping the y-coordinate.
-		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		// Step 4: Download the image data to the GPU.
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
-		// Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
-		gl.generateMipmap(gl.TEXTURE_2D);
-		// Step 6: Clean up.  Tell WebGL that we are done with the target.
-		gl.bindTexture(gl.TEXTURE_2D, null);
-	};
-	floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
+
+    floorImage = new Image();
+    floorImage.onload = function() {
+        // Step 1: Create the texture object.
+        floorTexture = gl.createTexture();
+        // Step 2: Bind the texture object to the "target" TEXTURE_2D
+        gl.bindTexture(gl.TEXTURE_2D, floorTexture);
+        // Step 3: (Optional) Tell WebGL that pixels are flipped vertically,
+        //         so that we don't have to deal with flipping the y-coordinate.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        // Step 4: Download the image data to the GPU.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, floorImage);
+        // Step 5: (Optional) Create a mipmap so that the texture can be anti-aliased.
+        gl.generateMipmap(gl.TEXTURE_2D);
+        // Step 6: Clean up.  Tell WebGL that we are done with the target.
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    };
+    floorImage.src = "img/"+(time.getUTCMinutes()%12)+".jpg";
 
 
 </script>
@@ -389,16 +485,94 @@ v.addEventListener('play', function() {
    }, 33);
 }, false);
 $("#inputMode").change(function() {
-    console.log("I am here");
     micSource.disconnect();
     fileSource.disconnect();
     if (document.getElementById("inputMode").value == "microphone") {
-analyser
-        micSource.connect(analyser);
+        source = micSource;
+        micSource.connect(distortion);
     } else {
-        fileSource.connect(analyser);
+        source = fileSource;
+        fileSource.connect(distortion);
     }
 });
+$("#distortion").change(function() {
+    var value = parseInt(document.getElementById("distortion").value);
+    distortion.curve = makeDistortionCurve(value);
+    distortion.oversample = '4x';
+    if (value == 0) {
+        distortion.oversample = 'none';
+        distortion.curve = null;
+    }
+});
+$("#bass").change(function() {
+    var value = parseInt(document.getElementById("bass").value);
+    bass.gain.value = value;
+});
+$("#treble").change(function() {
+    var value = parseInt(document.getElementById("treble").value);
+    treble.gain.value = value;
+});
+$("#balance").change(function() {
+    var value = parseInt(document.getElementById("balance").value);
+    balance.gain.value = value;
+});
+$("#loadFile").click(function() {
+    file = document.getElementById("fileLoc").files[0];
+    fr = new FileReader();
+    fr.readAsArrayBuffer(file);
+    fr.onload = function () {
+        micSource.disconnect();
+        fileSource.disconnect();
+        bufferSource.disconnect();
+
+        var audioData = fr.result;
+
+        audioCtx.decodeAudioData(audioData, function(buffer) {
+            bufferSource = audioCtx.createBufferSource();
+            bufferSource.buffer = buffer;
+
+            bufferSource.connect(distortion);
+
+            bufferSource.start();
+          },
+        function(e){ console.log("Error with decoding audio data" + e.err); });
+    };
+});
+var drawingCurve = false;
+var curve = [];
+$("#webglCanvas").mousemove(function (event) {
+    var clientRect = $("#webglCanvas")[0].getBoundingClientRect();
+    var x = event.clientX - clientRect.left;
+    var y = clientRect.height - (event.clientY - clientRect.top);
+    // Convert to -1 to 1
+    var xc = 2*x / clientRect.width - 1;
+    var yc = 2*y / clientRect.height - 1;
+    var frequencyBin = xc*analyser.frequencyBinCount;
+    if (drawingCurve) {
+        curve.push([xc, yc]);
+    }
+});
+$("#webglCanvas").mousedown(function (event) {
+    curve = [];
+    drawingCurve = true;
+});
+$("#webglCanvas").mouseup(function (event) {
+    drawingCurve = false;
+});
+$("#webglCanvas").mouseleave(function (event) {
+    drawingCurve = false;
+});
+$("#playButton").mousedown(function (event) {
+    if (audioCtx.state == "running") {
+        audioCtx.suspend();
+        document.getElementById("playButton"),innerHTML = "Play!"
+    } else {
+        audioCtx.resume();
+        document.getElementById("playButton"),innerHTML = "Pause!"
+    }
+});
+
+
 </script>
 </body>
 </html>
