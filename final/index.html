@@ -251,17 +251,17 @@ void main() {
     y = geom_texCoord[1];
     float theta = 0.;
 	vec2 center = vec2(0.5, 0.5);
-	vec2 startingdir = normalize(vec2(cos(mod((T/1000.0),2.0*PI)), sin(mod((T/1000.0),2.0*PI))));
+	vec2 startingdir = normalize(vec2(cos((T/1000.0)*2.0*PI), sin((T/1000.0)*2.0*PI)));
 	float uvdist = length(vec2(x, y)-center);
 	vec2 uvdir = normalize(vec2(x, y)-center);
 	float rtheta = acos(dot(startingdir, uvdir));
-	if(acos(dot(startingdir, rotate(uvdir, PI/4.))) < 0.0) rtheta = rtheta + PI;
+	//if(acos(dot(startingdir, rotate(uvdir, PI/4.))) < 0.0) rtheta = rtheta + PI;
 	vec4 fint = texture2D(texture, vec2(rtheta/(2.0*PI), 0.5));
 	
 	gl_FragColor = vec4(vec3(abs(dot(startingdir, uvdir))),1.0);
-	//if(uvdist*2. <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
-   	//else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
-	//				*texture2D(background, vec2(x,y));
+	if(uvdist*2. <= fint.x) gl_FragColor = texture2D(background, vec2(x,y));
+   	else gl_FragColor = texture2D(texture, vec2(1.-abs(2.*(0.5-y)), 0.5))
+					*texture2D(background, vec2(x,y));
 }
 </script>
 <script>
@@ -372,7 +372,10 @@ void main() {
 		
 		var T = gl.getUniformLocation(program, "T");
 		var d = new Date();
-		var n = d.getTime();
+        var seconds = d.getSeconds();
+        var ms = (seconds*1000 + d.getMilliseconds()) % 5000;
+        var n = ms * 1000 / 5000;
+        console.log(n);
         gl.uniform1f(T, n);
 		
 		gl.activeTexture(gl.TEXTURE1);
@@ -404,7 +407,7 @@ void main() {
 
     let canvas = document.querySelector('#webglCanvas');
     let gl = canvas.getContext("webgl");
-    let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader');
+    let program = createGlslProgram(gl, 'vertexShader', 'fragmentShader3');
     let program2 = createGlslProgram(gl, 'vertexShader2', 'fragmentShader2');
     let vertexData = [
         -1.0, -1.0, 0.0,  // Lower left
